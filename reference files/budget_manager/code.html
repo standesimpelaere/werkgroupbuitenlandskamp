@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Camp Finances</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#4A90E2",
+                        "secondary-green": "#7ED321",
+                        "secondary-red": "#D0021B",
+                        "neutral-light": "#F4F4F4",
+                        "neutral-dark": "#4A4A4A",
+                        "background-light": "#FFFFFF",
+                        "background-dark": "#1F2937",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px",
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-neutral-dark dark:text-neutral-light">
+<div class="flex h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex w-64 flex-col border-r border-neutral-light dark:border-gray-700 bg-white dark:bg-gray-800">
+<div class="flex h-full flex-col justify-between p-4">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3 px-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Scouts logo with a fleur-de-lis" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA9sSLRdtB8x8B4GdWyQKiv8iBJ_lbayPP_YtROxX7MH1iVPE17ImJ0cbJfeT9JYAs2e4cUwEBm0WGGBJjb95li-megJ57V8Hmy2_PyQ209Uto8-XHuKf_46MOa9oHs2EXyeAQOOxszMJYMutBcwzf_A6m2nXJeqvLFm6C_D8-4fj1pQsQ2UNKM4AywUTUzSEii_G_y3qr-45llZJucSfQ0ERDnReuiEiNlavGKNNhCfa9kIonxMfse6z7dOAPy0x3xClwnIvn7JmW7");'></div>
+<div class="flex flex-col">
+<h1 class="text-neutral-dark dark:text-white text-base font-medium leading-normal">Forest Camp '24</h1>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">St. John's Scouts</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-light dark:hover:bg-gray-700" href="#">
+<span class="material-symbols-outlined text-neutral-dark dark:text-gray-300">dashboard</span>
+<p class="text-neutral-dark dark:text-gray-300 text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 dark:bg-primary/20" href="#">
+<span class="material-symbols-outlined fill text-primary dark:text-primary">account_balance_wallet</span>
+<p class="text-primary dark:text-primary text-sm font-medium leading-normal">Camp Finances</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-light dark:hover:bg-gray-700" href="#">
+<span class="material-symbols-outlined text-neutral-dark dark:text-gray-300">groups</span>
+<p class="text-neutral-dark dark:text-gray-300 text-sm font-medium leading-normal">Participants</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-light dark:hover:bg-gray-700" href="#">
+<span class="material-symbols-outlined text-neutral-dark dark:text-gray-300">calendar_month</span>
+<p class="text-neutral-dark dark:text-gray-300 text-sm font-medium leading-normal">Schedule</p>
+</a>
+</nav>
+</div>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-light dark:hover:bg-gray-700" href="#">
+<span class="material-symbols-outlined text-neutral-dark dark:text-gray-300">settings</span>
+<p class="text-neutral-dark dark:text-gray-300 text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-light dark:hover:bg-gray-700" href="#">
+<span class="material-symbols-outlined text-neutral-dark dark:text-gray-300">help</span>
+<p class="text-neutral-dark dark:text-gray-300 text-sm font-medium leading-normal">Help</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto bg-neutral-light/50 dark:bg-gray-900">
+<div class="p-6 lg:p-8">
+<!-- PageHeading -->
+<header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+<div class="flex flex-col gap-2">
+<h1 class="text-neutral-dark dark:text-white text-3xl font-bold leading-tight tracking-tight">Camp Finances</h1>
+<p class="text-gray-500 dark:text-gray-400 text-base font-normal leading-normal">Track income, expenses, and view financial summaries for your camp.</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center justify-center gap-2 min-w-[84px] cursor-pointer overflow-hidden rounded-lg h-10 px-4 bg-white dark:bg-gray-700 text-neutral-dark dark:text-white text-sm font-medium leading-normal border border-gray-300 dark:border-gray-600 hover:bg-neutral-light dark:hover:bg-gray-600">
+<span class="material-symbols-outlined text-base">ios_share</span>
+<span class="truncate">Export</span>
+</button>
+<button class="flex items-center justify-center gap-2 min-w-[84px] cursor-pointer overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90">
+<span class="material-symbols-outlined text-base">add</span>
+<span class="truncate">Add Transaction</span>
+</button>
+</div>
+</header>
+<!-- Stats -->
+<section class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+<p class="text-gray-500 dark:text-gray-400 text-base font-medium leading-normal">Total Income</p>
+<p class="text-neutral-dark dark:text-white tracking-tight text-3xl font-bold leading-tight">€8,500</p>
+<p class="text-secondary-green text-sm font-medium leading-normal flex items-center gap-1"><span class="material-symbols-outlined text-base">arrow_upward</span>+5.2%</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+<p class="text-gray-500 dark:text-gray-400 text-base font-medium leading-normal">Total Expenses</p>
+<p class="text-neutral-dark dark:text-white tracking-tight text-3xl font-bold leading-tight">€6,250</p>
+<p class="text-secondary-red text-sm font-medium leading-normal flex items-center gap-1"><span class="material-symbols-outlined text-base">arrow_upward</span>+8.1%</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+<p class="text-gray-500 dark:text-gray-400 text-base font-medium leading-normal">Current Balance</p>
+<p class="text-neutral-dark dark:text-white tracking-tight text-3xl font-bold leading-tight">€2,250</p>
+<p class="text-secondary-red text-sm font-medium leading-normal flex items-center gap-1"><span class="material-symbols-outlined text-base">arrow_downward</span>-2.5%</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+<p class="text-gray-500 dark:text-gray-400 text-base font-medium leading-normal">Total Budget</p>
+<p class="text-neutral-dark dark:text-white tracking-tight text-3xl font-bold leading-tight">€10,000</p>
+<p class="text-gray-500 text-sm font-medium leading-normal">63% spent</p>
+</div>
+</section>
+<!-- Budget Visualizations -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+<!-- ProgressBar -->
+<div class="lg:col-span-2 flex flex-col gap-4 p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+<h3 class="text-neutral-dark dark:text-white text-lg font-bold leading-tight">Budget Spent</h3>
+<div class="rounded-full bg-neutral-light dark:bg-gray-700 h-2.5">
+<div class="h-2.5 rounded-full bg-primary" style="width: 63%;"></div>
+</div>
+<p class="text-gray-500 dark:text-gray-400 text-sm font-normal leading-normal">€6,250 of €10,000 used</p>
+</div>
+<!-- Donut Chart -->
+<div class="flex flex-col p-6 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+<h3 class="text-neutral-dark dark:text-white text-lg font-bold leading-tight mb-4">Expenses by Category</h3>
+<div class="flex items-center justify-center">
+<img class="w-40 h-40" data-alt="A donut chart showing expense categories: Food, Activities, Transport, and Lodging." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH5dLmckghCk4hSKtr0w00zCtOr53MytfQIxcBYEsCdaT5WEFw3-ANtD-enCBl61qMyA2kU58qlQhHdPzm8jrICRIGTrokwcKcS3VIFX39kyj2ris6te0WP3gpEDBrcJ9YAjS4L8riM7LPn4BzQBsrTLsIsrIoyXe5BNDvutaLSu0LOcnIggkPsJgmy2QWCcjUTbIi5nyNoVqsT3VQSDFgNsM4fqBYUMx4JF5LbX9LOGu8GZ4Avl5eF6bpg9TXyUN0w0A2UrLWSV2K"/>
+</div>
+</div>
+</section>
+<!-- Transactions Table -->
+<section class="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+<div class="p-6">
+<h2 class="text-neutral-dark dark:text-white text-xl font-bold leading-tight mb-4">Transactions</h2>
+<div class="flex flex-wrap items-center justify-between gap-4">
+<div class="relative min-w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+<input class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-neutral-dark dark:text-white focus:ring-primary focus:border-primary" placeholder="Search transactions..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<select class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-neutral-dark dark:text-white focus:ring-primary focus:border-primary">
+<option>All Types</option>
+<option>Income</option>
+<option>Expense</option>
+</select>
+<select class="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-neutral-dark dark:text-white focus:ring-primary focus:border-primary">
+<option>All Categories</option>
+<option>Food</option>
+<option>Activities</option>
+<option>Transport</option>
+</select>
+</div>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-neutral-light/50 dark:bg-gray-700/50">
+<tr>
+<th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></th>
+<th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
+<th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+<th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
+<th class="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Amount</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-gray-700/50">
+<td class="px-6 py-4 whitespace-nowrap"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark dark:text-white">Participant Fee - John D.</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">July 15, 2024</td>
+<td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Income</span></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-green text-right">+€150.00</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-gray-700/50">
+<td class="px-6 py-4 whitespace-nowrap"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark dark:text-white">Grocery Shopping</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">July 14, 2024</td>
+<td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">Food</span></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-red text-right">-€450.75</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-gray-700/50">
+<td class="px-6 py-4 whitespace-nowrap"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark dark:text-white">Bus Rental</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">July 13, 2024</td>
+<td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Transport</span></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-red text-right">-€800.00</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-gray-700/50">
+<td class="px-6 py-4 whitespace-nowrap"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark dark:text-white">Campsite Booking</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">July 10, 2024</td>
+<td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">Lodging</span></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-red text-right">-€1,200.00</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-gray-700/50">
+<td class="px-6 py-4 whitespace-nowrap"><input class="rounded border-gray-300 text-primary focus:ring-primary" type="checkbox"/></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-dark dark:text-white">Local Council Grant</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">July 9, 2024</td>
+<td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Income</span></td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-secondary-green text-right">+€2,500.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

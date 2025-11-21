@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Action Plan - Scouts Zurenborg</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#2E7D32",
+              "secondary": "#F5A623",
+              "background-light": "#f6f8f6",
+              "background-dark": "#102210",
+              "card-light": "#ffffff",
+              "card-dark": "#1a2c1a",
+              "text-light": "#111811",
+              "text-dark": "#e0f0e0",
+              "text-muted-light": "#618961",
+              "text-muted-dark": "#89a989",
+              "border-light": "#dbe6db",
+              "border-dark": "#304030",
+            },
+            fontFamily: {
+              "display": ["Inter", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+      .material-symbols-outlined.fill {
+        font-variation-settings: 'FILL' 1;
+      }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark">
+<div class="relative flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex h-screen flex-col border-r border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 w-64 sticky top-0">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Scouts Zurenborg logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBskkmO8UlKhNbDbQbN6IXt69fHazbbq0_4T8VUah-ZonGr6UW9vwFXGnTkr_P6anhJNvnXwnmx81NV0uashFpfLrpxL-c7kbtV2BxnAqEtwpOdgFOWIO_pj2AU6TBRAXVLZVW3YmwNA8N7j1iP6crBuHrAlcNfxxwO437WpanKjtjF8fS-ts31quvoJrYR2QjKnV4AOfI5LJJpOCDnlAsBwp1hfv01eMTOgxWOjYTfuhFuiUI_yds-vIdkTANoEfUe0VA1MO4qTypx");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-light dark:text-text-dark text-base font-bold leading-normal">Scouts Zurenborg</h1>
+<p class="text-text-muted-light dark:text-text-muted-dark text-sm font-normal leading-normal">Ardennes Camp 2024</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-light dark:text-text-dark hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary" href="#">
+<span class="material-symbols-outlined fill">list_alt</span>
+<p class="text-sm font-bold leading-normal">Action Plan</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-light dark:text-text-dark hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined">payments</span>
+<p class="text-sm font-medium leading-normal">Budget</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-light dark:text-text-dark hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<p class="text-sm font-medium leading-normal">Members</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-light dark:text-text-dark hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-text-light dark:text-text-dark hover:bg-primary/10 transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<p class="text-sm font-medium leading-normal">Log Out</p>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 p-8">
+<div class="w-full mx-auto">
+<!-- PageHeading -->
+<header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+<div class="flex flex-col gap-1">
+<h1 class="text-text-light dark:text-text-dark text-4xl font-black leading-tight tracking-[-0.033em]">Action Plan</h1>
+<p class="text-text-muted-light dark:text-text-muted-dark text-base font-normal leading-normal">Organize all camp-related tasks, timelines, and responsibilities.</p>
+</div>
+<button class="flex items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-secondary hover:bg-secondary/90 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+<span class="truncate">Add New Task</span>
+</button>
+</header>
+<!-- Stats -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="flex flex-col gap-2 rounded-lg p-6 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Overall Progress</p>
+<p class="text-text-light dark:text-text-dark tracking-light text-2xl font-bold leading-tight">75%</p>
+<p class="text-primary text-sm font-medium leading-normal">+5% this week</p>
+</div>
+<div class="flex flex-col gap-2 rounded-lg p-6 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Upcoming Deadline</p>
+<p class="text-text-light dark:text-text-dark tracking-light text-2xl font-bold leading-tight">14 Days</p>
+<p class="text-text-muted-light dark:text-text-muted-dark text-sm font-normal leading-normal">Camp Start</p>
+</div>
+<div class="flex flex-col gap-2 rounded-lg p-6 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Tasks Overdue</p>
+<p class="text-red-600 dark:text-red-400 tracking-light text-2xl font-bold leading-tight">3</p>
+<p class="text-text-muted-light dark:text-text-muted-dark text-sm font-normal leading-normal">+1 from yesterday</p>
+</div>
+<div class="flex flex-col gap-2 rounded-lg p-6 border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark">
+<p class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Budget Status</p>
+<p class="text-primary tracking-light text-2xl font-bold leading-tight">On Track</p>
+<p class="text-text-muted-light dark:text-text-muted-dark text-sm font-normal leading-normal">€12.5k / €20k spent</p>
+</div>
+</section>
+<!-- Toolbar & View Switcher -->
+<div class="flex flex-wrap justify-between items-center gap-4 mb-6 sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm py-2 z-10">
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-md text-text-muted-light dark:text-text-muted-dark hover:bg-primary/10 hover:text-text-light dark:hover:text-text-dark transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="p-2 rounded-md text-text-muted-light dark:text-text-muted-dark hover:bg-primary/10 hover:text-text-light dark:hover:text-text-dark transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+<button class="p-2 rounded-md text-text-muted-light dark:text-text-muted-dark hover:bg-primary/10 hover:text-text-light dark:hover:text-text-dark transition-colors">
+<span class="material-symbols-outlined">swap_vert</span>
+</button>
+</div>
+<div class="flex h-10 w-full sm:w-auto items-center justify-center rounded-lg bg-primary/10 p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-4 has-[:checked]:bg-card-light has-[:checked]:dark:bg-card-dark has-[:checked]:shadow-sm has-[:checked]:text-text-light has-[:checked]:dark:text-text-dark text-text-muted-light dark:text-text-muted-dark text-sm font-medium leading-normal transition-colors">
+<span class="truncate">Board View</span>
+<input checked="" class="sr-only" name="view-switcher" type="radio" value="Board View"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-md px-4 has-[:checked]:bg-card-light has-[:checked]:dark:bg-card-dark has-[:checked]:shadow-sm has-[:checked]:text-text-light has-[:checked]:dark:text-text-dark text-text-muted-light dark:text-text-muted-dark text-sm font-medium leading-normal transition-colors">
+<span class="truncate">Calendar View</span>
+<input class="sr-only" name="view-switcher" type="radio" value="Calendar View"/>
+</label>
+</div>
+</div>
+<!-- Kanban Board -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Column: To Do -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center px-1">
+<h3 class="font-bold text-text-light dark:text-text-dark">To Do</h3>
+<span class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark bg-primary/10 px-2 py-0.5 rounded-full">3</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 flex flex-col gap-3 shadow-sm cursor-grab active:cursor-grabbing">
+<h4 class="font-semibold text-text-light dark:text-text-dark">Book transportation (bus company)</h4>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>June 15</span>
+</div>
+<div class="flex -space-x-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Tom" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA7pOmSTS6V8zVKXZ7bsm5cqTJ8BGZs0hhl1g-OvytyYcP7-rPr7jShDJi32VRNE8-j7t8ZT5l0qfNil_wKVP4eFf2vJ7XTrXgYQkYMilF8kY3EzziBBHLg6hCU-z8fKnrE_5kfv_4Ki7wmPdwpBdIkzAWMsWobuBNmBS11x-5qGisZEQMw3D8vC9Wq9KtuHLEkjQgDxqxqfixzP2IQ86NpxS9bWBT2SfFcK7tyyMYQ35XcupHim8y2dTeabKV6IA00SlygfG_1U1Dm");'></div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Sarah" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCybSY2Y7qb-8I5STbh95RmEHHEKWqCcXhn866QYoXG4uZxRk8c7zJYc-FD0A4Y3o9ujKs6oQvvIGuOCKUCObuCqdiwm5OZFCp6qtLS0Z_m9incpg7pDRVWJfnaDWkXwcxHMUcvuuI1frO6dYhw0oADBwH0o34ZLP5uTpp3Y4V0iKpCXP065pWhQ-4gTOdvaMItcNNDnrvfy23VUQYtIwYT71HzvhdZJOuYsRIRzwdA8OZwbAZQYQ05Bencve4HrWT-BudyOYhh6cLD");'></div>
+</div>
+</div>
+<div class="flex gap-2 text-xs">
+<span class="font-medium text-red-800 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded-full">High Priority</span>
+<span class="font-medium text-green-800 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full">Logistics</span>
+</div>
+</div>
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 flex flex-col gap-3 shadow-sm cursor-grab active:cursor-grabbing">
+<h4 class="font-semibold text-text-light dark:text-text-dark">Finalize camp theme and activities</h4>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>June 20</span>
+</div>
+<div class="flex -space-x-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Chloe" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBfo2dcGLwf8VSYAR9VazT-NJ_zh3EbypUa7RyRjH2zPeX_0xhze7QsgjGHmxmBh_B7cUcNlghywU_H2T_P2CZW-TsebzcZpVYAPtJeIx-3ZcXbc4vif76a04RLtu34aYA2nLpn0YN-ykMSkXlU_DVEjWAHCOVpb2CJF7IISEPhik0lWBqRt67EAG54UsGQqhca5bf8oEA786V71WSIc_aQJnWamiHIpYZWwyhoqDLSEBqpXOi15ecc8nCznoSMIJOcEAq1xwqFmdt-");'></div>
+</div>
+</div>
+<div class="flex gap-2 text-xs">
+<span class="font-medium text-purple-800 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/50 px-2 py-1 rounded-full">Activities</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: In Progress -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center px-1">
+<h3 class="font-bold text-text-light dark:text-text-dark">In Progress</h3>
+<span class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark bg-primary/10 px-2 py-0.5 rounded-full">2</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 flex flex-col gap-3 shadow-sm cursor-grab active:cursor-grabbing">
+<h4 class="font-semibold text-text-light dark:text-text-dark">Create parent info package</h4>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>June 10</span>
+</div>
+<div class="flex -space-x-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Alex" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAa58bjhk4WilMz96ESqqJqM34QD0a961HzYgiHv1xRCPRiLlcImrsWblbCLRSw5aadlv_Jfyt0s7RyoNGeLTQPwWl23FPx4Dnqxi9ZzZaWh5QS8qNyb_lhQyyOdUkVtA2VNOmtcC6BVdf5Q3ridn9EYK6VjDl2lIZwmX-KMyC9zfcge2jHHscxdObjEtarLPkUWOnslB_kEoR83OtrsC2ukktJv2IMNla2Iq-dReaVXmn7q1V8385dhIUKLiBpOvbowkzP34rXpcn_");'></div>
+</div>
+</div>
+<div class="flex gap-2 text-xs">
+<span class="font-medium text-yellow-800 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/50 px-2 py-1 rounded-full">Medium Priority</span>
+<span class="font-medium text-blue-800 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded-full">Communication</span>
+</div>
+</div>
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 flex flex-col gap-3 shadow-sm cursor-grab active:cursor-grabbing">
+<h4 class="font-semibold text-text-light dark:text-text-dark">Purchase first-aid supplies</h4>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span>June 25</span>
+</div>
+<div class="flex -space-x-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Sarah" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCngtA9y-iUPyL0PaOEpJYR3dr-B-JYdwRND0IxlgjJZbWsuyjYZ8YxpIfarrlBt_Zo02VCZahJpBZD7_qQzye4wKmsc7JJNKLaGZViL5X75ENW1M2GJn_rGTVdW8ouLjLjaljIstt7fcopOBsRxa7mVUXQXqxgn-GDgvAKS2YOphkwp8WHz275pI7i-3ysPd5ajLzMi68txvQ9ZSYi-w9phif0ADNoQBpdEnyIu1lxOX_XMFXNrRR5MjeLCmaMTK2igBIFfSBcWobU");'></div>
+</div>
+</div>
+<div class="flex gap-2 text-xs">
+<span class="font-medium text-green-800 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full">Logistics</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: Blocked -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center px-1">
+<h3 class="font-bold text-text-light dark:text-text-dark">Blocked</h3>
+<span class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark bg-primary/10 px-2 py-0.5 rounded-full">1</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="rounded-lg border-2 border-red-500/50 dark:border-red-400/50 bg-card-light dark:bg-card-dark p-4 flex flex-col gap-3 shadow-sm cursor-grab active:cursor-grabbing">
+<h4 class="font-semibold text-text-light dark:text-text-dark">Confirm campsite booking</h4>
+<p class="text-xs text-red-600 dark:text-red-400">Waiting for confirmation email from site owner.</p>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span class="line-through">May 30</span>
+</div>
+<div class="flex -space-x-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Tom" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuClegPZI79UKbahMaKy4LA71fqwYT8lxVxF1n6sdxpa9IYmHRZlqIJ5b-LPpSvW8vukqOHpYRRFhhOAO4I9vl1RPo0dWShz5hz-CVe5cDly02ZxT6yDhDLXnrDAeIPBLHqUdYKwilXyWGPvC6tL0Ub9os4Lve82LtnqPyVCCba97GAlyRZcaa21XubkutpET2i_zeoJe6YKxmoxaXNoTI9C_z_t3U_sy_3wIBgHeAJOdfaRCFIdEW9MqO9FfaHyeKnA_Bo_4j4PLXRz");'></div>
+</div>
+</div>
+<div class="flex gap-2 text-xs">
+<span class="font-medium text-red-800 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2 py-1 rounded-full">High Priority</span>
+<span class="font-medium text-green-800 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded-full">Logistics</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Column: Done -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-between items-center px-1">
+<h3 class="font-bold text-text-light dark:text-text-dark">Done</h3>
+<span class="text-sm font-medium text-text-muted-light dark:text-text-muted-dark bg-primary/10 px-2 py-0.5 rounded-full">124</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 flex flex-col gap-3 shadow-sm opacity-60">
+<h4 class="font-semibold text-text-light dark:text-text-dark line-through">Recruit camp volunteers</h4>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined text-base">task_alt</span>
+<span>Completed May 25</span>
+</div>
+<div class="flex -space-x-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Chloe" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC62SljWrIbKKa-4GACLqQsREjEqP7eKoCBP9uqfIB3ogJiJEoIDpnpLGGggYjKtlL9IVQdBNPthnagS0YOqop_gL6Nzw1ABcL9l6yUHXIA6qOIgFj4uNOhRsE7S35DSBHQk5vHFPENitVHf1eazJuizTSV9QPiFjI6jTWEc8RdcPUDmBbT-_zXvMJZMgTKG3BjxtwjPlvwK7lMwO6koyz_7I731We3Bg7aaGc26ElUJRvgAwMieaw7XdOYRyXDhI6cqTTczEv3MoMp");'></div>
+</div>
+</div>
+<div class="flex gap-2 text-xs">
+<span class="font-medium text-gray-800 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50 px-2 py-1 rounded-full">Administration</span>
+</div>
+</div>
+<div class="rounded-lg border border-border-light dark:border-border-dark bg-card-light dark:bg-card-dark p-4 flex flex-col gap-3 shadow-sm opacity-60">
+<h4 class="font-semibold text-text-light dark:text-text-dark line-through">Set camp budget</h4>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-sm text-text-muted-light dark:text-text-muted-dark">
+<span class="material-symbols-outlined text-base">task_alt</span>
+<span>Completed May 15</span>
+</div>
+<div class="flex -space-x-2">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-6 ring-2 ring-card-light dark:ring-card-dark" data-alt="Avatar of Tom" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAuSGFmYZGfGl3ex2ujCsupWe4SJri_IuA6_l_5p3WVpAPJ6A_Bt1kIqz_hrSlt0LfeEUovGFbPr_b1JgUtU9ztcSOXRqz9TA1WnSEfKl_KzBEO5MX-mltHsWHQ6xx-ss9eWFWlbcG96GXIc_dGozUZZKAEaLoBuZAei9QiUc6uhFg5Ri1THZygu6C7S33uwYAtPVKBcx-EnLF1NYa9rsKp08DMwbTDmv9ssZpjh3aSYGtWco_6RFlzQII1LaCHlTSsEeyPBBhMfq9m");'></div>
+</div>
+</div>
+<div class="flex gap-2 text-xs">
+<span class="font-medium text-gray-800 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50 px-2 py-1 rounded-full">Administration</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

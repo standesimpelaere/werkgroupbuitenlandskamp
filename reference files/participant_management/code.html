@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Camper Registrations</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2A4E44",
+                        "secondary": "#D8C3A5",
+                        "accent": "#E8743B",
+                        "background-light": "#FFFFFF",
+                        "background-dark": "#101815",
+                        "surface-light": "#F7F6F4",
+                        "surface-dark": "#1A2420",
+                        "text-light": "#333333",
+                        "text-dark": "#EAEAEA",
+                        "border-light": "#EAEAEA",
+                        "border-dark": "#333333",
+                        "status-green": "#5CB85C",
+                        "status-yellow": "#F0AD4E",
+                        "status-red": "#D9534F"
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-light dark:text-text-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root">
+<div class="flex flex-1">
+<!-- SideNavBar -->
+<aside class="flex flex-col w-64 p-4 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-4">
+<div class="flex gap-3 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="Camp Willow Creek Logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDQ1eVQZBjWHGNCiqVioAgQ0nPV8QssBbv-7hJgLjWNKSgrpQ3sm462EtEy_psH4fELcnhihbOnt1J5OXAWAtQ45Lt50XG6XIF8JRxKRkum2hJ9mqVYeR_yEwBcIkLVRhg_DWEyBw2nJVYNiqf4Tp3heG2vHQQeKNvq_2Cof1Nm5615lTiUFmawrqb9kCyZMKHN6H1gX-Qjm7OYFvdO9Hz7HvGX8diRb6n9ogNiwpXg4Ll1Op5ZRpUp_iU4ofyibukuBA2ZoGcowAeI");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-light dark:text-text-dark text-base font-medium leading-normal">Scouts De Biekorf</h1>
+<p class="text-primary/80 dark:text-primary/90 text-sm font-normal leading-normal">Zomerkamp 2024</p>
+</div>
+</div>
+<nav class="flex flex-col gap-2 mt-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">dashboard</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">calendar_month</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Schedule</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20" href="#">
+<span class="material-symbols-outlined text-primary font-bold">group</span>
+<p class="text-primary text-sm font-bold leading-normal">Registrations</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">credit_card</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Finances</p>
+</a>
+</nav>
+</div>
+<div class="mt-auto flex flex-col gap-4">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">settings</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Settings</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-light dark:text-text-dark">help</span>
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Help Center</p>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 p-8 overflow-y-auto">
+<div class="flex flex-col gap-6">
+<!-- Page Heading and Actions -->
+<div class="flex flex-wrap justify-between items-center gap-4">
+<p class="text-text-light dark:text-text-dark text-4xl font-black leading-tight tracking-[-0.033em]">Camper Registrations</p>
+<div class="flex flex-1 gap-3 flex-wrap justify-end">
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-secondary text-primary text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Manage Groups</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-secondary text-primary text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Export to CSV</span>
+</button>
+<button class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Add New Camper</span>
+</button>
+</div>
+</div>
+<!-- Search and Filter Bar -->
+<div class="flex flex-wrap gap-4 items-center">
+<div class="flex-grow min-w-64">
+<label class="flex flex-col h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-primary/80 flex border-none bg-surface-light dark:bg-surface-dark items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-text-light dark:text-text-dark focus:outline-0 focus:ring-0 border-none bg-surface-light dark:bg-surface-dark focus:border-none h-full placeholder:text-primary/70 dark:placeholder:text-primary/60 px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Search by camper name..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex gap-3 overflow-x-auto">
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-surface-light dark:bg-surface-dark px-4">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Group</p>
+<span class="material-symbols-outlined text-text-light dark:text-text-dark text-base">expand_more</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-surface-light dark:bg-surface-dark px-4">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Payment Status</p>
+<span class="material-symbols-outlined text-text-light dark:text-text-dark text-base">expand_more</span>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-surface-light dark:bg-surface-dark px-4">
+<p class="text-text-light dark:text-text-dark text-sm font-medium leading-normal">Medical Info</p>
+<span class="material-symbols-outlined text-text-light dark:text-text-dark text-base">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark">
+<table class="min-w-full text-sm text-left">
+<thead class="border-b border-border-light dark:border-border-dark">
+<tr>
+<th class="p-4" scope="col"><input class="form-checkbox rounded border-primary/50 text-primary focus:ring-primary/50" type="checkbox"/></th>
+<th class="px-6 py-3 font-medium text-text-light/80 dark:text-text-dark/80" scope="col">Camper Name</th>
+<th class="px-6 py-3 font-medium text-text-light/80 dark:text-text-dark/80" scope="col">Age</th>
+<th class="px-6 py-3 font-medium text-text-light/80 dark:text-text-dark/80" scope="col">Group</th>
+<th class="px-6 py-3 font-medium text-text-light/80 dark:text-text-dark/80" scope="col">Payment</th>
+<th class="px-6 py-3 font-medium text-text-light/80 dark:text-text-dark/80" scope="col">Medical</th>
+<th class="px-6 py-3 font-medium text-text-light/80 dark:text-text-dark/80" scope="col">Registration Date</th>
+<th class="px-6 py-3 font-medium text-text-light/80 dark:text-text-dark/80" scope="col"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="bg-primary/5 dark:bg-primary/10 border-b border-border-light dark:border-border-dark">
+<td class="p-4"><input class="form-checkbox rounded border-primary/50 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-6 py-4 font-medium whitespace-nowrap">Liam Peeters</td>
+<td class="px-6 py-4">9</td>
+<td class="px-6 py-4">Welpen</td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-green/20 text-status-green">Paid</span></td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-green/20 text-status-green">Complete</span></td>
+<td class="px-6 py-4">2024-03-15</td>
+<td class="px-6 py-4 text-right"><button class="font-medium text-primary hover:underline">View</button></td>
+</tr>
+<tr class="border-b border-border-light dark:border-border-dark">
+<td class="p-4"><input class="form-checkbox rounded border-primary/50 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-6 py-4 font-medium whitespace-nowrap">Emma Dubois</td>
+<td class="px-6 py-4">12</td>
+<td class="px-6 py-4">Pioneers</td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent">Due</span></td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-yellow/20 text-status-yellow">Pending</span></td>
+<td class="px-6 py-4">2024-03-12</td>
+<td class="px-6 py-4 text-right"><button class="font-medium text-primary hover:underline">View</button></td>
+</tr>
+<tr class="border-b border-border-light dark:border-border-dark">
+<td class="p-4"><input class="form-checkbox rounded border-primary/50 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-6 py-4 font-medium whitespace-nowrap">Noah Janssens</td>
+<td class="px-6 py-4">14</td>
+<td class="px-6 py-4">Verkenners</td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-green/20 text-status-green">Paid</span></td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-red/20 text-status-red">Missing</span></td>
+<td class="px-6 py-4">2024-03-10</td>
+<td class="px-6 py-4 text-right"><button class="font-medium text-primary hover:underline">View</button></td>
+</tr>
+<tr class="border-b border-border-light dark:border-border-dark">
+<td class="p-4"><input class="form-checkbox rounded border-primary/50 text-primary focus:ring-primary/50" type="checkbox"/></td>
+<td class="px-6 py-4 font-medium whitespace-nowrap">Olivia Mertens</td>
+<td class="px-6 py-4">8</td>
+<td class="px-6 py-4">Welpen</td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-green/20 text-status-green">Paid</span></td>
+<td class="px-6 py-4"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-green/20 text-status-green">Complete</span></td>
+<td class="px-6 py-4">2024-03-09</td>
+<td class="px-6 py-4 text-right"><button class="font-medium text-primary hover:underline">View</button></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+<!-- Contextual Action/Detail Panel -->
+<aside class="w-96 flex-shrink-0 p-6 bg-surface-light dark:bg-surface-dark border-l border-border-light dark:border-border-dark">
+<div class="flex flex-col gap-6">
+<!-- Camper Summary Card -->
+<div class="flex flex-col items-center gap-4 p-4 rounded-xl bg-background-light dark:bg-background-dark">
+<img class="size-24 rounded-full object-cover" data-alt="Portrait of Liam Peeters" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgRk6xHmgsgHyUfzTzVovrhqtN2q_SUWA0tsw06bv4XQVyVhz0JAncwyEyVXnfZFr6fWgZPKku1Cv89L88f1q4aJRhwf5P0i2lWwS00XGYxIsWMmFtuLKyYqrPb0Vh23teRD8jvrHANOM9uQFtMtsUBcABp-odIFktihYRdaTJcMNfiBLNGP7ImcEV0sHOOvhDH-h-ayI4bHeyUIuXCAFUZEgzZarbdPatgoMV40mIJz_Y0k2RJhZzAkZfPNf4i_Z7q0JkcXrX7lN5"/>
+<div class="text-center">
+<h3 class="text-xl font-bold">Liam Peeters</h3>
+<p class="text-sm text-text-light/70 dark:text-text-dark/70">Age: 9 | Group: Welpen</p>
+</div>
+<button class="w-full flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Edit Profile</span>
+</button>
+</div>
+<!-- Tabs -->
+<div>
+<div class="border-b border-border-light dark:border-border-dark">
+<nav aria-label="Tabs" class="-mb-px flex space-x-6">
+<a class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-primary border-primary" href="#">Details</a>
+<a class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-text-light/60 dark:text-text-dark/60 border-transparent hover:text-primary hover:border-primary/50" href="#">Medical</a>
+<a class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-text-light/60 dark:text-text-dark/60 border-transparent hover:text-primary hover:border-primary/50" href="#">Payments</a>
+<a class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-text-light/60 dark:text-text-dark/60 border-transparent hover:text-primary hover:border-primary/50" href="#">Notes</a>
+</nav>
+</div>
+<div class="py-6 space-y-4 text-sm">
+<div>
+<h4 class="font-semibold">Parent/Guardian</h4>
+<p>Sarah Peeters</p>
+<p class="text-text-light/70 dark:text-text-dark/70">+32 477 12 34 56</p>
+<p class="text-text-light/70 dark:text-text-dark/70">sarah.peeters@example.com</p>
+</div>
+<div>
+<h4 class="font-semibold">Address</h4>
+<p class="text-text-light/70 dark:text-text-dark/70">Kerkstraat 12, 9000 Gent</p>
+</div>
+<div>
+<h4 class="font-semibold">Emergency Contact</h4>
+<p>Tom Willems (Grandfather)</p>
+<p class="text-text-light/70 dark:text-text-dark/70">+32 499 87 65 43</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</body></html>

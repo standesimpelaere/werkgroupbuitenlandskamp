@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>KSA Buitenlands Kamp - Kostenraming</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#137fec",
+              "background-light": "#f6f7f8",
+              "background-dark": "#101922",
+            },
+            fontFamily: {
+              "display": ["Manrope"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" integrity="sha512-gV+SxHdomCWK2nmmfdJhsxF/mrArPnaxJDT/oX66R1EYUhhl9HokifVW4zfhl8aOxTEAt3i0ArffoN80I4Ws/A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<style type="text/css">
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111418] dark:text-gray-200">
+<div class="flex min-h-screen w-full">
+<!-- SideNavBar -->
+<aside class="flex w-64 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-4">
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10" data-alt="KSA logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDbdw8b_kh12K96mYy3Gg1uFfFygRSNrjvEjE73jztiY-4SXeZHRuLTzDgM2l5Wz4fa3t81mR_1pC7lLxk3ZCBLCLpQVXqtEZYysMaCPsvl7mHFIo0jTSS4hF4lj9Ujkfj92gnQSa1aRVPwD1NXbg6wRFMcw0bCF-9pMNH-MOjtHVnryxSftdxrhX24YvQY2ekNdmGZyQ8HAxyQZ6lGoZhXzZMnVDr6ZUt7mR26Tq3omf-OQmzoxCxpBQ");'></div>
+<div class="flex flex-col">
+<h1 class="text-[#111418] dark:text-gray-100 text-base font-medium leading-normal">KSA Buitenlands Kamp</h1>
+<p class="text-[#617589] dark:text-gray-400 text-sm font-normal leading-normal">Kostenraming 2025</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5" href="#" data-tab-target="dashboard">
+<span class="material-symbols-outlined text-[#111418] dark:text-gray-300">dashboard</span>
+<p class="text-sm font-medium leading-normal">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5" href="#" data-tab-target="kosten">
+<span class="material-symbols-outlined text-[#111418] dark:text-gray-300">receipt_long</span>
+<p class="text-sm font-medium leading-normal">Kosten</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5" href="#" data-tab-target="planning">
+<span class="material-symbols-outlined text-[#111418] dark:text-gray-300">event</span>
+<p class="text-sm font-medium leading-normal">Planning</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5" href="#" data-tab-target="formules">
+<span class="material-symbols-outlined text-[#111418] dark:text-gray-300">functions</span>
+<p class="text-sm font-medium leading-normal">Formules</p>
+</a>
+</div>
+</div>
+<div class="mt-auto flex flex-col gap-4">
+<button class="flex min-w-[84px] w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em]">
+<span class="truncate">Download Spreadsheet</span>
+</button>
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[#111418] dark:text-gray-300">share</span>
+<p class="text-sm font-medium leading-normal">Deel met leiding</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5" href="#">
+<span class="material-symbols-outlined text-[#111418] dark:text-gray-300">help</span>
+<p class="text-sm font-medium leading-normal">Handleiding</p>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto">
+  <div class="p-8 space-y-8">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="space-y-1">
+        <p class="uppercase text-xs font-semibold tracking-[0.25em] text-primary">Kostenraming</p>
+        <h1 class="text-[#111418] dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">KSA Buitenlands Kamp</h1>
+        <p class="text-[#617589] dark:text-gray-400 text-sm max-w-2xl">Interactief overzicht voor Google Sheets/Excel. Gebruik de tabbladen om dashboards, kosten, planning, parameters en formules te bekijken.</p>
+      </div>
+      <button class="flex items-center gap-2 rounded-lg bg-primary text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+        <span class="material-symbols-outlined text-white text-lg">download</span>
+        <span>Download Spreadsheet</span>
+      </button>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 border-b border-[#dbe0e6] dark:border-gray-700 pb-3">
+      <button class="tab-button flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold bg-primary text-white shadow-sm" data-tab="dashboard">
+        <span class="material-symbols-outlined text-base">insights</span>
+        <span>Dashboard</span>
+      </button>
+      <button class="tab-button flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#617589] hover:bg-gray-100 dark:hover:bg-white/5" data-tab="kosten">
+        <span class="material-symbols-outlined text-base">table</span>
+        <span>Kostentabel</span>
+      </button>
+      <button class="tab-button flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#617589] hover:bg-gray-100 dark:hover:bg-white/5" data-tab="planning">
+        <span class="material-symbols-outlined text-base">calendar_month</span>
+        <span>Planning</span>
+      </button>
+      <button class="tab-button flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#617589] hover:bg-gray-100 dark:hover:bg-white/5" data-tab="parameters">
+        <span class="material-symbols-outlined text-base">tune</span>
+        <span>Parameters</span>
+      </button>
+      <button class="tab-button flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-[#617589] hover:bg-gray-100 dark:hover:bg-white/5" data-tab="formules">
+        <span class="material-symbols-outlined text-base">functions</span>
+        <span>Formules</span>
+      </button>
+    </div>
+    <section class="tab-panel space-y-6" data-tab-panel="dashboard">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+          <p class="text-sm font-medium text-[#617589] dark:text-gray-400 uppercase tracking-[0.1em]">Totale kosten</p>
+          <p class="mt-2 text-2xl font-bold text-[#111418] dark:text-white" id="totaleKosten">€0</p>
+          <p class="text-xs text-[#617589] dark:text-gray-500 mt-1" id="kostenRange">Laag: €0 | Hoog: €0</p>
+        </div>
+        <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-medium text-[#617589] dark:text-gray-400 uppercase tracking-[0.1em]">Kost per <span id="kostPerLabel">deelnemer</span></p>
+            <button id="toggleKostPer" class="text-xs text-primary hover:underline">Wissel</button>
+          </div>
+          <p class="mt-2 text-2xl font-bold text-[#111418] dark:text-white" id="kostPerDeelnemer">€0</p>
+          <p class="text-xs text-[#617589] dark:text-gray-500 mt-1">Totaal aantal: <span id="totaalDeelnemers">0</span></p>
+        </div>
+        <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+          <p class="text-sm font-medium text-[#617589] dark:text-gray-400 uppercase tracking-[0.1em]">Totale opbrengst</p>
+          <p class="mt-2 text-2xl font-bold text-[#111418] dark:text-white" id="totaleOpbrengst">€0</p>
+          <p class="text-xs text-[#617589] dark:text-gray-500 mt-1">Inkomsten uit vraagprijzen</p>
+        </div>
+        <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+          <p class="text-sm font-medium text-[#617589] dark:text-gray-400 uppercase tracking-[0.1em]">Winst / verlies</p>
+          <p class="mt-2 text-2xl font-bold text-[#137fec]" id="winstVerlies">€0</p>
+          <p class="text-xs text-[#617589] dark:text-gray-500 mt-1" id="winstPercentage">0% marge</p>
+        </div>
+        <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+          <p class="text-sm font-medium text-[#617589] dark:text-gray-400 uppercase tracking-[0.1em]">Verlies per gastje</p>
+          <p class="mt-2 text-xl font-semibold text-[#111418] dark:text-white" id="actiefScenario">€0</p>
+          <p class="text-xs text-[#617589] dark:text-gray-500 mt-1">Winst/verlies gedeeld door aantal gastjes</p>
+        </div>
+      </div>
+      <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+        <h2 class="text-lg font-semibold text-[#111418] dark:text-white mb-4">Aanpassingen</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-4">
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Aantal gastjes</label>
+            <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="aantalGastjes" type="number" value="37"/>
+          </div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Aantal leiders</label>
+            <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="aantalLeiders" type="number" value="7"/>
+          </div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Vraagprijs gastje (€)</label>
+            <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="vraagprijsGastje" type="number" value="350"/>
+</div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Vraagprijs leider (€)</label>
+            <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="vraagprijsLeider" type="number" value="150"/>
+</div>
+          <div>
+            <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Bufferpercentage (%)</label>
+            <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="bufferPercentage" type="number" step="0.1" value="5"/>
+</div>
+</div>
+</div>
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+          <h3 class="text-lg font-semibold text-[#111418] dark:text-white mb-4">Kosten per categorie</h3>
+          <canvas id="pieChart" class="max-h-72"></canvas>
+</div>
+        <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+          <h3 class="text-lg font-semibold text-[#111418] dark:text-white mb-4">Kosten per categorie</h3>
+          <canvas id="barChart" class="max-h-72"></canvas>
+</div>
+</div>
+      <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6">
+        <h3 class="text-lg font-semibold text-[#111418] dark:text-white mb-4">Dag-per-dag kosten</h3>
+        <canvas id="lineChart" class="max-h-80"></canvas>
+      </div>
+    </section>
+    <section class="tab-panel hidden space-y-6" data-tab-panel="kosten">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-semibold text-[#111418] dark:text-white">Kostenoverzicht</h2>
+          <p class="text-sm text-[#617589] dark:text-gray-400">Gebruikt een lokale dataset met kampkosten en planning.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="kosten-refresh" class="flex items-center gap-1 rounded-lg border border-[#dbe0e6] dark:border-gray-700 px-3 py-2 text-sm font-semibold text-[#111418] dark:text-white hover:bg-gray-100 dark:hover:bg-white/10">
+            <span class="material-symbols-outlined text-base">refresh</span>
+            <span>Vernieuw data</span>
+</button>
+          <button id="kosten-add-button" class="flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-primary/40" disabled>
+            <span class="material-symbols-outlined text-base">add</span>
+            <span>Nieuw kostitem</span>
+</button>
+        </div>
+      </div>
+      <p id="kosten-status" class="text-sm text-[#617589] dark:text-gray-400">Lokale data nog niet geladen.</p>
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <nav id="kosten-category-list" class="lg:col-span-1 flex flex-col gap-2 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-4 text-sm">
+          <p class="text-xs uppercase tracking-[0.3em] text-[#617589] dark:text-gray-500">Categorieën</p>
+          <p class="text-sm text-[#617589] dark:text-gray-400">Laden...</p>
+        </nav>
+        <div id="kosten-table-container" class="lg:col-span-4 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-4">
+          <h3 class="text-lg font-semibold text-[#111418] dark:text-white mb-3">Selecteer een categorie</h3>
+          <p class="text-sm text-[#617589] dark:text-gray-400">Kies een categorie links om de onderliggende kosten te bekijken.</p>
+        </div>
+      </div>
+      <div id="kosten-empty-state" class="hidden rounded-lg border border-dashed border-primary/40 bg-primary/5 p-6 text-center text-sm text-[#617589] dark:text-gray-400">
+        Geen kostitems gevonden. Voeg een nieuw item toe om te starten.
+      </div>
+    </section>
+    <section class="tab-panel hidden space-y-6" data-tab-panel="planning">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-semibold text-[#111418] dark:text-white">Planning &amp; busberekening</h2>
+          <p class="text-sm text-[#617589] dark:text-gray-400 max-w-2xl">Dag-lijst met routes, kilometers en automatische buskost berekening inclusief extra kilometerprijs boven de daglimiet.</p>
+</div>
+        <span class="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary uppercase tracking-[0.2em]">Link met Dashboard</span>
+</div>
+<div class="overflow-hidden rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark">
+<div class="overflow-x-auto">
+<table class="w-full text-sm text-left">
+            <thead class="bg-white dark:bg-gray-800 border-b border-[#dbe0e6] dark:border-gray-700 text-[#111418] dark:text-gray-200">
+              <tr>
+                <th class="px-4 py-3 font-medium">Dag</th>
+                <th class="px-4 py-3 font-medium">Route</th>
+                <th class="px-4 py-3 font-medium">Km</th>
+                <th class="px-4 py-3 font-medium">Overnachting</th>
+                <th class="px-4 py-3 font-medium">Activiteit</th>
+                <th class="px-4 py-3 font-medium">Buskost</th>
+                <th class="px-4 py-3 font-medium">Extra km</th>
+</tr>
+</thead>
+            <tbody class="divide-y divide-[#dbe0e6] dark:divide-gray-800 text-[#617589] dark:text-gray-400" id="planningBody"></tbody>
+</table>
+</div>
+</div>
+      <div class="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-6 text-sm text-[#617589] dark:text-gray-400">
+        <strong class="text-primary uppercase tracking-[0.25em] text-xs block mb-2">Spreadsheet tip</strong>
+        <p>Gebruik <code>=MAX(0;Km-Daglimiet) * ExtraPrijsKm</code> om extra kilometers te berekenen en verwijs naar de parameters-tab voor daglimiet en prijs. Deze tabel kan direct in Google Sheets als bron dienen voor de lijngrafiek.</p>
+      </div>
+    </section>
+    <section class="tab-panel hidden space-y-6 pb-8" data-tab-panel="formules">
+      <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6 space-y-4">
+        <h3 class="text-lg font-semibold text-[#111418] dark:text-white">Scenario-selectie</h3>
+        <p class="text-sm text-[#617589] dark:text-gray-400">Gebruik een named range <code>ScenarioKeuze</code> gekoppeld aan een dropdown. Met <code>CHOOSE</code> of <code>INDEX</code> selecteer je automatisch de kolom Laag/Gemiddeld/Hoog.</p>
+        <div class="rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs text-[#111418] dark:text-gray-200">
+          <p><strong>Voorbeeld:</strong> <code>=INDEX({C2;D2;E2};MATCH(ScenarioKeuze;{"Laag";"Gemiddeld";"Hoog"};0))</code></p>
+        </div>
+      </div>
+      <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6 space-y-4">
+        <h3 class="text-lg font-semibold text-[#111418] dark:text-white">Kost per deelnemer</h3>
+        <p class="text-sm text-[#617589] dark:text-gray-400">Tel alle scenario-afhankelijke kosten op en deel door <code>AantalGastjes + AantalLeiders</code>. Gebruik <code>LET</code> om dubbel werk te vermijden.</p>
+        <div class="rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs text-[#111418] dark:text-gray-200">
+          <p><strong>Voorbeeld:</strong> <code>=LET(tot;SOM(ScenarioBereik);tot/(AantalGastjes+AantalLeiders))</code></p>
+        </div>
+      </div>
+      <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6 space-y-4">
+        <h3 class="text-lg font-semibold text-[#111418] dark:text-white">Grafieken &amp; draaitabellen</h3>
+        <p class="text-sm text-[#617589] dark:text-gray-400">Gebruik draaitabellen per categorie om het taart- en staafdiagram te voeden. Maak dynamische bereiken met <code>OFFSET</code> of <code>FILTER</code> zodat nieuwe rijen automatisch worden meegenomen.</p>
+      </div>
+      <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6 space-y-4">
+        <h3 class="text-lg font-semibold text-[#111418] dark:text-white">Automatisering</h3>
+        <p class="text-sm text-[#617589] dark:text-gray-400">Voeg commentaar toe aan sleutelcellen met uitleg voor de leiding. In Google Sheets kan een eenvoudige Apps Script trigger een wekelijkse pdf-export en mail versturen.</p>
+      </div>
+    </section>
+  </div>
+  <div id="kosten-add-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4">
+    <div class="w-full max-w-xl rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark shadow-xl">
+      <div class="flex items-center justify-between border-b border-[#dbe0e6] dark:border-gray-700 px-5 py-3">
+        <h3 class="text-lg font-semibold text-[#111418] dark:text-white">Nieuw kostitem</h3>
+        <button id="kosten-add-close" class="text-[#617589] dark:text-gray-400 hover:text-[#111418] dark:hover:text-gray-200">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="kosten-add-form" class="grid gap-4 px-5 py-4">
+        <div class="grid gap-2">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Categorie</label>
+          <select name="categorie" required class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+            <option value="Verblijf">Verblijf</option>
+            <option value="Vervoer">Vervoer</option>
+            <option value="Eten">Eten</option>
+            <option value="Speciale Activiteiten">Speciale Activiteiten</option>
+            <option value="Overige">Overige</option>
+          </select>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Subcategorie</label>
+          <input type="text" name="subcategorie" required placeholder="Bijv. Kajakken" class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+        </div>
+        <div class="grid gap-2">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Beschrijving</label>
+          <textarea name="beschrijving" rows="2" placeholder="Extra details" class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Eenheid</label>
+          <input type="text" name="eenheid" placeholder="Bijv. dag, persoon" class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid gap-2">
+            <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Laag (€)</label>
+            <input type="number" name="laag" step="0.01" class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+          </div>
+          <div class="grid gap-2">
+            <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Hoog (€)</label>
+            <input type="number" name="hoog" step="0.01" class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" />
+          </div>
+        </div>
+        <div class="grid gap-2">
+          <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Opmerkingen</label>
+          <textarea name="opmerkingen" rows="2" class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"></textarea>
+        </div>
+        <label class="flex items-center gap-2 text-sm text-[#617589] dark:text-gray-400">
+          <input type="checkbox" name="automatisch" class="rounded border-gray-300 text-primary focus:ring-primary" />
+          <span>Automatisch herberekenen op basis van parameters</span>
+        </label>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" id="kosten-add-cancel" class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 px-4 py-2 text-sm font-semibold text-[#617589] hover:bg-gray-100 dark:hover:bg-white/10">Annuleer</button>
+          <button type="submit" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90">Opslaan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script src="data/dataset.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const CATEGORY_ORDER = ["Verblijf", "Vervoer", "Eten", "Speciale Activiteiten", "Overige"];
+
+      const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
+      const tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+      const sidebarLinks = Array.from(document.querySelectorAll("[data-tab-target]"));
+
+      const activeButtonClasses = ["bg-primary", "text-white", "shadow-sm"];
+      const inactiveButtonClasses = ["text-[#617589]"];
+      const activeLinkClasses = ["bg-primary/10", "text-primary"];
+
+      const aantalGastjesInput = document.getElementById("aantalGastjes");
+      const aantalLeidersInput = document.getElementById("aantalLeiders");
+      const vraagprijsGastjeInput = document.getElementById("vraagprijsGastje");
+      const vraagprijsLeiderInput = document.getElementById("vraagprijsLeider");
+      const busDagprijsInput = document.getElementById("busDagprijs");
+      const busDaglimietInput = document.getElementById("busDaglimiet");
+      const busExtraKmInput = document.getElementById("busExtraKm");
+      const autoBrandstofInput = document.getElementById("autoBrandstof");
+      const autoAfstandInput = document.getElementById("autoAfstand");
+      const etenLaagInput = document.getElementById("etenLaag");
+      const aantalDagenEtenInput = document.getElementById("aantalDagenEten");
+      const bufferPercentageInput = document.getElementById("bufferPercentage");
+
+      const totaalKostenEl = document.getElementById("totaleKosten");
+      const kostenRangeEl = document.getElementById("kostenRange");
+      const kostPerDeelnemerEl = document.getElementById("kostPerDeelnemer");
+      const totaalDeelnemersEl = document.getElementById("totaalDeelnemers");
+      const totaleOpbrengstEl = document.getElementById("totaleOpbrengst");
+      const winstVerliesEl = document.getElementById("winstVerlies");
+      const winstPercentageEl = document.getElementById("winstPercentage");
+      const actiefScenarioEl = document.getElementById("actiefScenario");
+      const kostPerLabelEl = document.getElementById("kostPerLabel");
+      const toggleKostPerBtn = document.getElementById("toggleKostPer");
+
+      const kostenCategoryList = document.getElementById("kosten-category-list");
+      const kostenTableContainer = document.getElementById("kosten-table-container");
+      const kostenEmptyState = document.getElementById("kosten-empty-state");
+      const kostenStatus = document.getElementById("kosten-status");
+      const kostenAddButton = document.getElementById("kosten-add-button");
+      const kostenRefreshButton = document.getElementById("kosten-refresh");
+      const kostenAddModal = document.getElementById("kosten-add-modal");
+      const kostenAddForm = document.getElementById("kosten-add-form");
+      const kostenAddClose = document.getElementById("kosten-add-close");
+      const kostenAddCancel = document.getElementById("kosten-add-cancel");
+
+      const planningBodyEl = document.getElementById("planningBody");
+
+      let pieChart;
+      let barChart;
+      let lineChart;
+
+      let planningData = [];
+
+      const STORAGE_KEY = "ksa_kamp_data";
+      const STORAGE_PARAMS_KEY = "ksa_kamp_params";
+
+      const state = {
+        kostenItems: [],
+        categoryItems: {},
+        categoryTotals: {},
+        summary: null,
+        planningTotals: null,
+        selectedCategory: "Verblijf",
+        dataLoaded: false,
+        lastLoadedAt: null,
+        kostPerMode: "deelnemer"
+      };
+
+      function saveToLocalStorage() {
+        try {
+          const dataToSave = {
+            kosten: state.kostenItems,
+            planning: planningData,
+            summary: state.summary,
+            planningTotals: state.planningTotals,
+            lastSaved: new Date().toISOString()
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        } catch (error) {
+          console.error("Fout bij opslaan naar localStorage:", error);
+        }
+      }
+
+      function loadFromLocalStorage() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const data = JSON.parse(saved);
+            return data;
+          }
+        } catch (error) {
+          console.error("Fout bij laden uit localStorage:", error);
+        }
+        return null;
+      }
+
+      function saveParamsToLocalStorage() {
+        try {
+          const params = {
+            aantalGastjes: aantalGastjesInput.value,
+            aantalLeiders: aantalLeidersInput.value,
+            vraagprijsGastje: vraagprijsGastjeInput.value,
+            vraagprijsLeider: vraagprijsLeiderInput.value,
+            busDagprijs: busDagprijsInput?.value || "",
+            busDaglimiet: busDaglimietInput?.value || "",
+            busExtraKm: busExtraKmInput?.value || "",
+            autoBrandstof: autoBrandstofInput?.value || "",
+            autoAfstand: autoAfstandInput?.value || "",
+            etenLaag: etenLaagInput?.value || "",
+            aantalDagenEten: aantalDagenEtenInput?.value || "",
+            bufferPercentage: bufferPercentageInput?.value || ""
+          };
+          localStorage.setItem(STORAGE_PARAMS_KEY, JSON.stringify(params));
+        } catch (error) {
+          console.error("Fout bij opslaan parameters:", error);
+        }
+      }
+
+      function loadParamsFromLocalStorage() {
+        try {
+          const saved = localStorage.getItem(STORAGE_PARAMS_KEY);
+          if (saved) {
+            const params = JSON.parse(saved);
+            if (params.aantalGastjes) aantalGastjesInput.value = params.aantalGastjes;
+            if (params.aantalLeiders) aantalLeidersInput.value = params.aantalLeiders;
+            if (params.vraagprijsGastje) vraagprijsGastjeInput.value = params.vraagprijsGastje;
+            if (params.vraagprijsLeider) vraagprijsLeiderInput.value = params.vraagprijsLeider;
+            if (params.busDagprijs && busDagprijsInput) busDagprijsInput.value = params.busDagprijs;
+            if (params.busDaglimiet && busDaglimietInput) busDaglimietInput.value = params.busDaglimiet;
+            if (params.busExtraKm && busExtraKmInput) busExtraKmInput.value = params.busExtraKm;
+            if (params.autoBrandstof && autoBrandstofInput) autoBrandstofInput.value = params.autoBrandstof;
+            if (params.autoAfstand && autoAfstandInput) autoAfstandInput.value = params.autoAfstand;
+            if (params.etenLaag && etenLaagInput) etenLaagInput.value = params.etenLaag;
+            if (params.aantalDagenEten && aantalDagenEtenInput) aantalDagenEtenInput.value = params.aantalDagenEten;
+            if (params.bufferPercentage && bufferPercentageInput) bufferPercentageInput.value = params.bufferPercentage;
+          }
+        } catch (error) {
+          console.error("Fout bij laden parameters:", error);
+        }
+      }
+
+      function activateTab(tab) {
+        tabButtons.forEach((button) => {
+          if (button.dataset.tab === tab) {
+            button.classList.add(...activeButtonClasses);
+            button.classList.remove(...inactiveButtonClasses);
+          } else {
+            button.classList.remove(...activeButtonClasses);
+            if (!button.classList.contains("bg-primary")) {
+              button.classList.add(...inactiveButtonClasses);
+            }
+          }
+        });
+
+        sidebarLinks.forEach((link) => {
+          if (link.dataset.tabTarget === tab) {
+            link.classList.add(...activeLinkClasses);
+          } else {
+            link.classList.remove(...activeLinkClasses);
+          }
+        });
+
+        tabPanels.forEach((panel) => {
+          panel.classList.toggle("hidden", panel.dataset.tabPanel !== tab);
+        });
+      }
+
+      function formatEuro(value, withSymbol = true) {
+        const number = Number(value) || 0;
+        const formatted = Math.round(number).toLocaleString("nl-BE");
+        return withSymbol ? `€${formatted}` : `${formatted}`;
+      }
+
+      function setKostenStatus(message, tone = "info") {
+        const toneClasses = ["text-[#617589]", "text-primary", "text-green-500", "text-yellow-500", "text-red-500"];
+        kostenStatus.classList.remove(...toneClasses);
+        switch (tone) {
+          case "success":
+            kostenStatus.classList.add("text-green-500");
+            break;
+          case "warning":
+            kostenStatus.classList.add("text-yellow-500");
+            break;
+          case "error":
+            kostenStatus.classList.add("text-red-500");
+            break;
+          case "highlight":
+            kostenStatus.classList.add("text-primary");
+            break;
+          default:
+            kostenStatus.classList.add("text-[#617589]");
+        }
+        kostenStatus.textContent = message;
+      }
+
+      function findCostItem(subcategorie) {
+        return state.kostenItems.find((item) => item.subcategorie === subcategorie);
+      }
+
+      function calculate() {
+        const gastjes = Number(aantalGastjesInput.value) || 0;
+        const leiders = Number(aantalLeidersInput.value) || 0;
+        const totaalPersonen = gastjes + leiders;
+
+        const busDagprijs = Number(busDagprijsInput?.value) || 0;
+        const busDaglimiet = Number(busDaglimietInput?.value) || 0;
+        const busExtraKm = Number(busExtraKmInput?.value) || 0;
+        const autoBrandstof = Number(autoBrandstofInput?.value) || 0;
+        const autoAfstand = Number(autoAfstandInput?.value) || 0;
+        const etenPrijsPerDag = Number(etenLaagInput?.value) || 0;
+        const aantalDagenEten = Number(aantalDagenEtenInput?.value) || 0;
+        const bufferPct = Number(bufferPercentageInput?.value) || 0;
+
+        const aantalBusdagen = planningData.length || 0;
+        const totaalKm = planningData.reduce((sum, dag) => sum + (Number(dag.km) || 0), 0);
+
+        const busItem = findCostItem("Bus huur");
+        if (busItem && busItem.automatisch) {
+          let busKosten = busDagprijs * aantalBusdagen;
+          const maxKmZonderExtra = busDaglimiet * aantalBusdagen;
+          if (totaalKm > maxKmZonderExtra) {
+            const extraKm = totaalKm - maxKmZonderExtra;
+            busKosten += extraKm * busExtraKm;
+          }
+          busItem.totaal = busKosten;
+          busItem.prijsPerPersoon = totaalPersonen > 0 ? busKosten / totaalPersonen : 0;
+        }
+
+        const autoItem = findCostItem("Auto koks");
+        if (autoItem && autoItem.automatisch) {
+          const autoKosten = autoAfstand * autoBrandstof;
+          autoItem.totaal = autoKosten;
+          autoItem.prijsPerPersoon = totaalPersonen > 0 ? autoKosten / totaalPersonen : 0;
+        }
+
+        const maaltijdenItem = findCostItem("Maaltijden");
+        if (maaltijdenItem && maaltijdenItem.automatisch) {
+          const maaltijdenKosten = etenPrijsPerDag * aantalDagenEten * totaalPersonen;
+          maaltijdenItem.totaal = maaltijdenKosten;
+          maaltijdenItem.prijsPerPersoon = etenPrijsPerDag * aantalDagenEten;
+          maaltijdenItem.aantal = aantalDagenEten;
+        }
+
+        const categoryItems = {};
+        CATEGORY_ORDER.forEach((cat) => {
+          categoryItems[cat] = [];
+        });
+
+        state.kostenItems.forEach((item) => {
+          const categorie = CATEGORY_ORDER.includes(item.categorie) ? item.categorie : "Overige";
+          item.categorie = categorie;
+          item.totaal = calculateItemTotal(item, gastjes, leiders);
+          categoryItems[categorie].push(item);
+        });
+        state.categoryItems = categoryItems;
+
+        const totalsByCategory = {};
+        CATEGORY_ORDER.forEach((cat) => {
+          totalsByCategory[cat] = 0;
+        });
+
+        const bufferItem = findCostItem("Buffer");
+        let totalNoBuffer = 0;
+
+        state.kostenItems.forEach((item) => {
+          if (item.subcategorie === "Buffer") {
+            return;
+          }
+          totalsByCategory[item.categorie] += item.totaal || 0;
+          totalNoBuffer += item.totaal || 0;
+        });
+
+        const bufferTotaal = totalNoBuffer * (bufferPct / 100);
+        if (bufferItem) {
+          bufferItem.totaal = bufferTotaal;
+          totalsByCategory[bufferItem.categorie] += bufferTotaal;
+        } else if (bufferTotaal > 0) {
+          const generatedBuffer = {
+            id: "generated-buffer",
+            categorie: "Overige",
+            subcategorie: "Buffer",
+            beschrijving: "Onvoorziene kosten",
+            eenheid: "%",
+            splitsing: "iedereen",
+            prijsPerPersoon: 0,
+            aantal: 0,
+            totaal: bufferTotaal,
+            opmerkingen: `Automatisch ${bufferPct}%`,
+            automatisch: true
+          };
+          state.kostenItems.push(generatedBuffer);
+          state.categoryItems["Overige"].push(generatedBuffer);
+          totalsByCategory["Overige"] += bufferTotaal;
+        }
+
+        const totaalKosten = totalNoBuffer + bufferTotaal;
+        const kostPerDeelnemer = totaalPersonen ? totaalKosten / totaalPersonen : 0;
+        const kostPerGastje = gastjes ? totaalKosten / gastjes : 0;
+        const vraagprijsGastje = Number(vraagprijsGastjeInput.value) || 0;
+        const vraagprijsLeider = Number(vraagprijsLeiderInput.value) || 0;
+        const totaleOpbrengst = gastjes * vraagprijsGastje + leiders * vraagprijsLeider;
+        const winstVerlies = totaleOpbrengst - totaalKosten;
+        const winstPct = totaalKosten ? ((winstVerlies / totaalKosten) * 100).toFixed(1) : 0;
+        const verliesPerGastje = gastjes ? winstVerlies / gastjes : 0;
+
+        totaalKostenEl.textContent = formatEuro(totaalKosten);
+        kostenRangeEl.textContent = `${totaalPersonen} deelnemers`;
+        
+        const kostPerWaarde = state.kostPerMode === "gastje" ? kostPerGastje : kostPerDeelnemer;
+        kostPerDeelnemerEl.textContent = formatEuro(kostPerWaarde);
+        kostPerLabelEl.textContent = state.kostPerMode === "gastje" ? "gastje" : "deelnemer";
+        
+        totaalDeelnemersEl.textContent = totaalPersonen.toString();
+        totaleOpbrengstEl.textContent = formatEuro(totaleOpbrengst);
+        const winstTekst = winstVerlies >= 0 ? `+${formatEuro(winstVerlies)}` : `-${formatEuro(Math.abs(winstVerlies))}`;
+        winstVerliesEl.textContent = winstTekst;
+        winstVerliesEl.classList.toggle("text-red-600", winstVerlies < 0);
+        winstVerliesEl.classList.toggle("text-[#137fec]", winstVerlies >= 0);
+        winstPercentageEl.textContent = `${winstPct}% marge`;
+        actiefScenarioEl.textContent = formatEuro(verliesPerGastje);
+
+        const categoryTotals = {};
+        CATEGORY_ORDER.forEach((cat) => {
+          categoryTotals[cat] = totalsByCategory[cat] || 0;
+        });
+        state.categoryTotals = categoryTotals;
+        state.calculatedTotals = {
+          totaalKosten,
+          kostPerDeelnemer,
+          kostPerGastje,
+          winstVerlies,
+          verliesPerGastje
+        };
+
+        updateChartsWithState();
+        renderCategoryList();
+        renderKostenTable();
+        updatePlanningTable(busDagprijs, busDaglimiet, busExtraKm);
+        
+        saveToLocalStorage();
+        saveParamsToLocalStorage();
+      }
+
+      function updateChartsWithState() {
+        const ChartGlobal =
+          typeof window !== "undefined" && window.Chart
+            ? window.Chart
+            : typeof Chart !== "undefined"
+              ? Chart
+              : null;
+        if (!ChartGlobal) {
+          console.warn("Chart.js library not loaded; skipping chart rendering.");
+          return;
+        }
+
+        if (pieChart) pieChart.destroy();
+        if (barChart) barChart.destroy();
+        if (lineChart) lineChart.destroy();
+
+        const pieData = CATEGORY_ORDER.map((cat) => state.categoryTotals[cat] || 0);
+        pieChart = new ChartGlobal(document.getElementById("pieChart"), {
+          type: "doughnut",
+          data: {
+            labels: CATEGORY_ORDER,
+            datasets: [
+              {
+                data: pieData,
+                backgroundColor: ["#137fec", "#355dff", "#82d6ff", "#7c3aed", "#10b981"],
+                borderWidth: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } }
+          }
+        });
+
+        const categoryData = CATEGORY_ORDER.map((cat) => state.categoryTotals[cat] || 0);
+        barChart = new ChartGlobal(document.getElementById("barChart"), {
+          type: "bar",
+          data: {
+            labels: CATEGORY_ORDER,
+            datasets: [
+              { label: "Kosten per categorie", data: categoryData, backgroundColor: "rgba(19, 127, 236, 0.7)" }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+
+        const busDagprijs = Number(busDagprijsInput?.value) || 0;
+        const busDaglimiet = Number(busDaglimietInput?.value) || 0;
+        const busExtraKm = Number(busExtraKmInput?.value) || 0;
+        const dagKosten = planningData.map((dag) => {
+          const km = Number(dag.km) || 0;
+          let kost = busDagprijs;
+          if (km > busDaglimiet) {
+            kost += (km - busDaglimiet) * busExtraKm;
+          }
+          return typeof dag.busKosten === "number" ? dag.busKosten : kost;
+        });
+        lineChart = new ChartGlobal(document.getElementById("lineChart"), {
+          type: "line",
+          data: {
+            labels: planningData.map((dag) => `Dag ${dag.dag}`),
+            datasets: [
+              {
+                label: "Dagelijkse kosten",
+                data: dagKosten,
+                borderColor: "#137fec",
+                backgroundColor: "rgba(19, 127, 236, 0.15)",
+                tension: 0.4,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { position: "bottom" } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      }
+
+      function renderCategoryList() {
+        const itemsHtml = CATEGORY_ORDER.map((cat) => {
+          const count = state.categoryItems[cat]?.length || 0;
+          const isActive = state.selectedCategory === cat;
+          const baseClasses = "flex items-center justify-between rounded-lg px-3 py-2 text-sm";
+          const activeClasses = "bg-primary text-white shadow";
+          const inactiveClasses = "text-[#617589] dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10";
+          return `<button type="button" data-category="${cat}" class="${baseClasses} ${isActive ? activeClasses : inactiveClasses}">
+              <span>${cat}</span>
+              <span class="text-xs uppercase tracking-[0.2em]">${count}</span>
+            </button>`;
+        }).join("");
+
+        kostenCategoryList.innerHTML = `
+          <p class="text-xs uppercase tracking-[0.3em] text-[#617589] dark:text-gray-500">Categorieën</p>
+          ${itemsHtml}
+        `;
+        kostenAddButton.dataset.category = state.selectedCategory;
+      }
+
+      function renderKostenTable() {
+        const categorie = state.selectedCategory;
+        const items = state.categoryItems[categorie] || [];
+        const totals = state.categoryTotals[categorie] || 0;
+        const gastjes = Number(aantalGastjesInput.value) || 0;
+        const leiders = Number(aantalLeidersInput.value) || 0;
+
+        if (state.kostenItems.length === 0) {
+          kostenEmptyState.classList.remove("hidden");
+          kostenTableContainer.classList.add("hidden");
+          return;
+        }
+
+        kostenEmptyState.classList.add("hidden");
+        kostenTableContainer.classList.remove("hidden");
+
+        if (!items.length) {
+          kostenTableContainer.innerHTML = `
+            <div class="flex items-start justify-between mb-3">
+              <div>
+                <h3 class="text-lg font-semibold text-[#111418] dark:text-white">${categorie}</h3>
+                <p class="text-sm text-[#617589] dark:text-gray-400">Nog geen kostitems in deze categorie.</p>
+              </div>
+              <div class="text-right text-sm text-[#617589] dark:text-gray-400">
+                <p>Totaal: ${formatEuro(totals)}</p>
+              </div>
+            </div>
+            <p class="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-6 text-sm text-[#617589] dark:text-gray-400">Voeg een nieuw item toe om te starten of laad de dataset opnieuw.</p>
+          `;
+          return;
+        }
+
+        let tableHtml = "";
+        let extraContent = "";
+
+        if (categorie === "Verblijf") {
+        const rowsHtml = items.map((item) => {
+          const badge = item.automatisch ? '<span class="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Auto</span>' : "";
+            const canEdit = !item.automatisch;
+            const totaalGastjes = (item.prijsPerPersoonGastjes || 0) * gastjes * (item.aantal || 1);
+            const totaalLeiders = (item.prijsPerPersoonLeiders || 0) * leiders * (item.aantal || 1);
+            const totaal = totaalGastjes + totaalLeiders;
+          return `
+              <tr class="hover:bg-gray-50 dark:hover:bg-white/5" data-item-id="${item.id}">
+              <td class="px-4 py-3 font-medium text-[#111418] dark:text-gray-100">
+                <div class="flex flex-col">
+                  <span>${item.subcategorie}</span>
+                  ${badge}
+                </div>
+              </td>
+              <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.beschrijving || "—"}</td>
+              <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.eenheid || "—"}</td>
+                <td class="px-4 py-3 text-[#111418] dark:text-gray-100">
+                  ${canEdit ? `<input type="number" class="edit-input w-16 rounded border border-gray-300 px-2 py-1 text-sm" data-field="prijsPerPersoonGastjes" data-id="${item.id}" value="${item.prijsPerPersoonGastjes || 0}" step="0.01">` : formatEuro(item.prijsPerPersoonGastjes || 0)}
+                </td>
+                <td class="px-4 py-3 text-[#111418] dark:text-gray-100">
+                  ${canEdit ? `<input type="number" class="edit-input w-16 rounded border border-gray-300 px-2 py-1 text-sm" data-field="prijsPerPersoonLeiders" data-id="${item.id}" value="${item.prijsPerPersoonLeiders || 0}" step="0.01">` : formatEuro(item.prijsPerPersoonLeiders || 0)}
+                </td>
+                <td class="px-4 py-3 text-[#111418] dark:text-gray-100">${formatEuro(totaal)}</td>
+              <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.opmerkingen || "—"}</td>
+                ${canEdit ? `<td class="px-4 py-3">
+                  <button class="delete-item text-red-500 hover:text-red-700 text-sm" data-id="${item.id}" title="Verwijderen">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </td>` : '<td></td>'}
+            </tr>
+          `;
+        }).join("");
+
+          tableHtml = `
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-background-light dark:bg-white/10 text-[#111418] dark:text-gray-200 uppercase tracking-[0.1em] text-xs">
+                <tr>
+                  <th class="px-4 py-3">Subcategorie</th>
+                  <th class="px-4 py-3">Beschrijving</th>
+                  <th class="px-4 py-3">Eenheid</th>
+                  <th class="px-4 py-3">PPP Gastjes</th>
+                  <th class="px-4 py-3">PPP Leiders</th>
+                  <th class="px-4 py-3">Totaal</th>
+                  <th class="px-4 py-3">Opmerkingen</th>
+                  <th class="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#dbe0e6] dark:divide-gray-800">${rowsHtml}</tbody>
+            </table>
+          `;
+        } else if (categorie === "Vervoer") {
+          const busDagprijs = Number(busDagprijsInput?.value) || 650;
+          const busDaglimiet = Number(busDaglimietInput?.value) || 300;
+          const busExtraKm = Number(busExtraKmInput?.value) || 0.80;
+          const autoBrandstof = Number(autoBrandstofInput?.value) || 0.30;
+          const autoAfstand = Number(autoAfstandInput?.value) || 3400;
+
+          extraContent = `
+            <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6 mb-6">
+              <h4 class="text-lg font-semibold text-[#111418] dark:text-white mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-lg">directions_bus</span>
+                Bus &amp; Vervoer Parameters
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div>
+                  <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Dagprijs bus (€)</label>
+                  <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="busDagprijs" type="number" value="${busDagprijs}"/>
+            </div>
+                <div>
+                  <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Daglimiet (km)</label>
+                  <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="busDaglimiet" type="number" value="${busDaglimiet}"/>
+            </div>
+                <div>
+                  <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Extra prijs/km (€)</label>
+                  <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="busExtraKm" type="number" step="0.01" value="${busExtraKm}"/>
+          </div>
+                <div>
+                  <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Auto brandstof (€/km)</label>
+                  <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="autoBrandstof" type="number" step="0.01" value="${autoBrandstof}"/>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Auto afstand (km)</label>
+                  <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="autoAfstand" type="number" value="${autoAfstand}"/>
+                </div>
+              </div>
+              <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark p-4">
+                <h5 class="text-sm font-semibold text-[#111418] dark:text-white mb-2">Kilometers per dag</h5>
+          <div class="overflow-x-auto">
+                  <table class="min-w-full text-xs">
+                    <thead class="text-[#617589] dark:text-gray-400">
+                      <tr>
+                        <th class="px-2 py-1 text-left">Dag</th>
+                        <th class="px-2 py-1 text-left">Route</th>
+                        <th class="px-2 py-1 text-right">Km</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-[#111418] dark:text-gray-200">
+                      ${planningData.map(d => `<tr><td class="px-2 py-1">${d.dag}</td><td class="px-2 py-1">${d.route}</td><td class="px-2 py-1 text-right">${d.km}</td></tr>`).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          `;
+
+          const rowsHtml = items.map((item) => {
+            const badge = item.automatisch ? '<span class="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Auto</span>' : "";
+            return `
+              <tr class="hover:bg-gray-50 dark:hover:bg-white/5" data-item-id="${item.id}">
+                <td class="px-4 py-3 font-medium text-[#111418] dark:text-gray-100">
+                  <div class="flex flex-col">
+                    <span>${item.subcategorie}</span>
+                    ${badge}
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.beschrijving || "—"}</td>
+                <td class="px-4 py-3 text-[#111418] dark:text-gray-100">${formatEuro(item.totaal || 0)}</td>
+                <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.opmerkingen || "—"}</td>
+              </tr>
+            `;
+          }).join("");
+
+          tableHtml = `
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-background-light dark:bg-white/10 text-[#111418] dark:text-gray-200 uppercase tracking-[0.1em] text-xs">
+                <tr>
+                  <th class="px-4 py-3">Subcategorie</th>
+                  <th class="px-4 py-3">Beschrijving</th>
+                  <th class="px-4 py-3">Totaal</th>
+                  <th class="px-4 py-3">Opmerkingen</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#dbe0e6] dark:divide-gray-800">${rowsHtml}</tbody>
+            </table>
+          `;
+        } else if (categorie === "Eten") {
+          const etenPrijsPerDag = Number(etenLaagInput?.value) || 8.00;
+          const aantalDagenEten = Number(aantalDagenEtenInput?.value) || 11;
+
+          extraContent = `
+            <div class="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-6 mb-6">
+              <h4 class="text-lg font-semibold text-[#111418] dark:text-white mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary text-lg">restaurant</span>
+                Eten Parameters
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Prijs per dag per persoon (€)</label>
+                  <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="etenLaag" type="number" step="0.01" value="${etenPrijsPerDag}"/>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Aantal eetdagen</label>
+                  <input class="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary" id="aantalDagenEten" type="number" value="${aantalDagenEten}"/>
+                </div>
+              </div>
+            </div>
+          `;
+
+          const rowsHtml = items.map((item) => {
+            const badge = item.automatisch ? '<span class="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Auto</span>' : "";
+            return `
+              <tr class="hover:bg-gray-50 dark:hover:bg-white/5" data-item-id="${item.id}">
+                <td class="px-4 py-3 font-medium text-[#111418] dark:text-gray-100">
+                  <div class="flex flex-col">
+                    <span>${item.subcategorie}</span>
+                    ${badge}
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.beschrijving || "—"}</td>
+                <td class="px-4 py-3 text-[#111418] dark:text-gray-100">${formatEuro(item.totaal || 0)}</td>
+                <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.opmerkingen || "—"}</td>
+              </tr>
+            `;
+          }).join("");
+
+          tableHtml = `
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-background-light dark:bg-white/10 text-[#111418] dark:text-gray-200 uppercase tracking-[0.1em] text-xs">
+                <tr>
+                  <th class="px-4 py-3">Subcategorie</th>
+                  <th class="px-4 py-3">Beschrijving</th>
+                  <th class="px-4 py-3">Totaal</th>
+                  <th class="px-4 py-3">Opmerkingen</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#dbe0e6] dark:divide-gray-800">${rowsHtml}</tbody>
+            </table>
+          `;
+        } else {
+          const rowsHtml = items.map((item) => {
+            const badge = item.automatisch ? '<span class="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Auto</span>' : "";
+            const canEdit = !item.automatisch;
+            const ppp = item.splitsing === "gastjes_leiders" ? "—" : formatEuro(item.prijsPerPersoon || 0);
+            return `
+              <tr class="hover:bg-gray-50 dark:hover:bg-white/5" data-item-id="${item.id}">
+                <td class="px-4 py-3 font-medium text-[#111418] dark:text-gray-100">
+                  <div class="flex flex-col">
+                    <span>${item.subcategorie}</span>
+                    ${badge}
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.beschrijving || "—"}</td>
+                <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.eenheid || "—"}</td>
+                <td class="px-4 py-3 text-[#111418] dark:text-gray-100">
+                  ${canEdit && item.eenheid === "persoon" ? `<input type="number" class="edit-input w-20 rounded border border-gray-300 px-2 py-1 text-sm" data-field="prijsPerPersoon" data-id="${item.id}" value="${item.prijsPerPersoon || 0}" step="0.01">` : ppp}
+                </td>
+                <td class="px-4 py-3 text-[#111418] dark:text-gray-100">${formatEuro(item.totaal || 0)}</td>
+                <td class="px-4 py-3 text-[#617589] dark:text-gray-400">${item.opmerkingen || "—"}</td>
+                ${canEdit ? `<td class="px-4 py-3">
+                  <button class="delete-item text-red-500 hover:text-red-700 text-sm" data-id="${item.id}" title="Verwijderen">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </td>` : '<td></td>'}
+              </tr>
+            `;
+          }).join("");
+
+          tableHtml = `
+            <table class="min-w-full text-sm text-left">
+              <thead class="bg-background-light dark:bg-white/10 text-[#111418] dark:text-gray-200 uppercase tracking-[0.1em] text-xs">
+                <tr>
+                  <th class="px-4 py-3">Subcategorie</th>
+                  <th class="px-4 py-3">Beschrijving</th>
+                  <th class="px-4 py-3">Eenheid</th>
+                  <th class="px-4 py-3">Prijs per persoon</th>
+                  <th class="px-4 py-3">Totaal</th>
+                  <th class="px-4 py-3">Opmerkingen</th>
+                  <th class="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#dbe0e6] dark:divide-gray-800">${rowsHtml}</tbody>
+            </table>
+          `;
+        }
+
+        kostenTableContainer.innerHTML = `
+          <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-xl font-semibold text-[#111418] dark:text-white">${categorie}</h3>
+              <p class="text-sm text-[#617589] dark:text-gray-400">Totaal: ${formatEuro(totals)}</p>
+            </div>
+            <div class="flex flex-col items-end text-sm text-[#617589] dark:text-gray-400">
+              <p class="mt-1 flex items-center gap-1 text-xs uppercase tracking-[0.2em] text-primary">
+                <span class="material-symbols-outlined text-base">schedule</span>
+                Laatste update: ${state.lastLoadedAt ? state.lastLoadedAt.toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" }) : "—"}
+              </p>
+            </div>
+          </div>
+          ${extraContent}
+          <div class="overflow-x-auto">
+            ${tableHtml}
+</div>
+        `;
+      }
+
+      function updatePlanningTable(busDagprijs, busDaglimiet, busExtraKm) {
+        let totaalKmBerekening = 0;
+        let totaalBusKostenBerekening = 0;
+
+        const rowsHtml = planningData.map((dag) => {
+          const km = Number(dag.km) || 0;
+          totaalKmBerekening += km;
+          let busKostBerekening = busDagprijs;
+          if (km > busDaglimiet) {
+            busKostBerekening += (km - busDaglimiet) * busExtraKm;
+          }
+          const busKost = typeof dag.busKosten === "number" ? dag.busKosten : busKostBerekening;
+          totaalBusKostenBerekening += busKost;
+          return `
+            <tr>
+              <td>Dag ${dag.dag}</td>
+              <td>${dag.route}</td>
+              <td>${km} km</td>
+              <td>${dag.overnachting}</td>
+              <td>${dag.activiteit}</td>
+              <td>${formatEuro(busKost)}</td>
+            </tr>
+          `;
+        }).join("");
+
+        const totaalKmWeergave = state.planningTotals?.totaalKm ?? totaalKmBerekening;
+        const totaalBusKostenWeergave = state.planningTotals?.busKosten ?? totaalBusKostenBerekening;
+
+        planningBodyEl.innerHTML = `
+          ${rowsHtml}
+          <tr class="total-row">
+            <td colspan="2"><strong>TOTAAL</strong></td>
+            <td><strong>${totaalKmWeergave} km</strong></td>
+            <td colspan="2"></td>
+            <td><strong>${formatEuro(totaalBusKostenWeergave)}</strong></td>
+          </tr>
+        `;
+      }
+
+      function generateLocalId() {
+        const hasCrypto = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function";
+        const randomPart = hasCrypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        return `local-${randomPart}`;
+      }
+
+      function normalizeCostItem(raw = {}) {
+        const item = {
+          id: raw.id || generateLocalId(),
+          categorie: raw.categorie || "Overige",
+          subcategorie: raw.subcategorie || "Onbenoemd",
+          beschrijving: raw.beschrijving || "",
+          eenheid: raw.eenheid || "",
+          splitsing: raw.splitsing || "iedereen",
+          prijsPerPersoon: Number(raw.prijsPerPersoon) || 0,
+          prijsPerPersoonGastjes: Number(raw.prijsPerPersoonGastjes) || 0,
+          prijsPerPersoonLeiders: Number(raw.prijsPerPersoonLeiders) || 0,
+          aantal: Number(raw.aantal) || 0,
+          totaal: Number(raw.totaal) || 0,
+          opmerkingen: raw.opmerkingen || "",
+          automatisch: Boolean(raw.automatisch)
+        };
+        
+        if (raw.laag !== undefined || raw.hoog !== undefined) {
+          const gemiddeld = ((Number(raw.laag) || 0) + (Number(raw.hoog) || 0)) / 2;
+          if (item.splitsing === "gastjes_leiders") {
+            item.prijsPerPersoonGastjes = gemiddeld / 2 / (raw.aantal || 1);
+            item.prijsPerPersoonLeiders = gemiddeld / 2 / (raw.aantal || 1);
+          } else {
+            item.prijsPerPersoon = gemiddeld;
+          }
+        }
+        
+        return item;
+      }
+
+      function calculateItemTotal(item, aantalGastjes, aantalLeiders) {
+        if (item.automatisch) return 0;
+        
+        if (item.eenheid === "%") {
+          return 0;
+        }
+        
+        if (item.totaal && item.totaal > 0) {
+          return item.totaal;
+        }
+        
+        let totaal = 0;
+        const aantal = item.aantal || 1;
+        
+        if (item.splitsing === "gastjes_leiders") {
+          const totaalGastjes = (item.prijsPerPersoonGastjes || 0) * aantalGastjes * aantal;
+          const totaalLeiders = (item.prijsPerPersoonLeiders || 0) * aantalLeiders * aantal;
+          totaal = totaalGastjes + totaalLeiders;
+        } else {
+          const totaalPersonen = aantalGastjes + aantalLeiders;
+          if (item.eenheid === "persoon") {
+            totaal = (item.prijsPerPersoon || 0) * totaalPersonen;
+          } else if (item.eenheid === "groep") {
+            totaal = (item.prijsPerPersoon || 0) || item.totaal || 0;
+          } else {
+            totaal = (item.prijsPerPersoon || 0) * totaalPersonen * aantal;
+          }
+        }
+        
+        return totaal;
+      }
+
+      async function loadLocalDataset(options = { silent: false }) {
+        if (!options.silent) {
+          setKostenStatus("Lokale data laden...", "highlight");
+        }
+
+        let data = loadFromLocalStorage();
+        const fromStorage = !!data;
+
+        if (!data) {
+          data = window.LOCAL_DATASET;
+        }
+
+        if (!data) {
+          state.dataLoaded = false;
+          kostenAddButton.disabled = true;
+          setKostenStatus("Geen lokale dataset gevonden.", "error");
+          console.error("LOCAL_DATASET ontbreekt. Zorg dat data/dataset.js geladen wordt.");
+          calculate();
+          return;
+        }
+
+        try {
+          const kosten = Array.isArray(data.kosten) ? data.kosten : [];
+          state.kostenItems = kosten.map(normalizeCostItem);
+          planningData = Array.isArray(data.planning) ? data.planning : [];
+          state.summary = data.summary || null;
+          state.planningTotals = data.planningTotals || null;
+          state.dataLoaded = true;
+          state.lastLoadedAt = new Date();
+          kostenAddButton.disabled = false;
+          calculate();
+          const timestamp = state.lastLoadedAt.toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
+          const summaryTotal = state.summary?.totaal;
+          const planningSummary = state.planningTotals;
+          const infoParts = [
+            `${kosten.length} kostitems`,
+            `${planningData.length} planningdagen`
+          ];
+          if (planningSummary) {
+            infoParts.push(`${planningSummary.totaalKm} km`);
+          }
+          const source = fromStorage ? "opgeslagen data" : "standaard dataset";
+          setKostenStatus(`${source} geladen (${infoParts.join(" · ")}) om ${timestamp}.`, "success");
+        } catch (error) {
+          state.dataLoaded = false;
+          kostenAddButton.disabled = true;
+          setKostenStatus(`Data laden mislukt: ${error.message}`, "error");
+          console.error(error);
+          calculate();
+        }
+      }
+
+      function createLocalCostItem(payload) {
+        const item = normalizeCostItem({
+          id: generateLocalId(),
+          ...payload
+        });
+        state.kostenItems.push(item);
+        saveToLocalStorage();
+        return item;
+      }
+
+      function updateCostItem(id, updates) {
+        const index = state.kostenItems.findIndex(item => item.id === id);
+        if (index !== -1) {
+          state.kostenItems[index] = { ...state.kostenItems[index], ...updates };
+          saveToLocalStorage();
+          calculate();
+          return true;
+        }
+        return false;
+      }
+
+      function deleteCostItem(id) {
+        const index = state.kostenItems.findIndex(item => item.id === id);
+        if (index !== -1) {
+          state.kostenItems.splice(index, 1);
+          saveToLocalStorage();
+          calculate();
+          return true;
+        }
+        return false;
+      }
+
+      function openAddModal() {
+        if (!state.dataLoaded) {
+          setKostenStatus("Laad eerst de dataset voordat je een nieuw item toevoegt.", "warning");
+          return;
+        }
+        kostenAddForm.reset();
+        kostenAddForm.elements["categorie"].value = state.selectedCategory;
+        kostenAddModal.classList.remove("hidden");
+        kostenAddModal.classList.add("flex");
+      }
+
+      function closeAddModal() {
+        kostenAddModal.classList.add("hidden");
+        kostenAddModal.classList.remove("flex");
+      }
+
+      function registerListeners(elements) {
+        elements.forEach((element) => {
+          if (element) {
+          element.addEventListener("input", calculate);
+          element.addEventListener("change", calculate);
+          }
+        });
+      }
+
+      tabButtons.forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          activateTab(button.dataset.tab);
+        });
+      });
+
+      sidebarLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          activateTab(link.dataset.tabTarget);
+        });
+      });
+
+      kostenCategoryList.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-category]");
+        if (!button) return;
+        state.selectedCategory = button.dataset.category;
+        renderCategoryList();
+        renderKostenTable();
+      });
+
+      if (toggleKostPerBtn) {
+        toggleKostPerBtn.addEventListener("click", () => {
+          state.kostPerMode = state.kostPerMode === "deelnemer" ? "gastje" : "deelnemer";
+          calculate();
+      });
+      }
+
+      if (kostenRefreshButton) {
+        kostenRefreshButton.addEventListener("click", () => loadLocalDataset());
+      }
+      kostenAddButton.addEventListener("click", openAddModal);
+      kostenAddClose.addEventListener("click", closeAddModal);
+      kostenAddCancel.addEventListener("click", closeAddModal);
+      kostenAddModal.addEventListener("click", (event) => {
+        if (event.target === kostenAddModal) {
+          closeAddModal();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !kostenAddModal.classList.contains("hidden")) {
+          closeAddModal();
+        }
+      });
+
+      kostenAddForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!state.dataLoaded) {
+          setKostenStatus("Laad eerst de dataset voordat je een item opslaat.", "warning");
+          return;
+        }
+
+        const formData = new FormData(kostenAddForm);
+        const categorie = formData.get("categorie") || "Overige";
+        const subcategorie = formData.get("subcategorie") || "Onbenoemd";
+        const beschrijving = formData.get("beschrijving") || "";
+        const eenheid = formData.get("eenheid") || "";
+        const laag = formData.get("laag");
+        const hoog = formData.get("hoog");
+        const opmerkingen = formData.get("opmerkingen") || "";
+        const automatisch = formData.get("automatisch") === "on";
+
+        try {
+          const newItem = createLocalCostItem({
+            categorie,
+            subcategorie,
+            beschrijving,
+            eenheid,
+            laag: laag ? Number(laag) : 0,
+            hoog: hoog ? Number(hoog) : 0,
+            opmerkingen,
+            automatisch
+          });
+          setKostenStatus("Nieuw kostitem toegevoegd en opgeslagen.", "success");
+          closeAddModal();
+          state.selectedCategory = categorie;
+          calculate();
+        } catch (error) {
+          setKostenStatus(`Opslaan mislukt: ${error.message}`, "error");
+          console.error(error);
+        }
+      });
+
+      registerListeners([
+        aantalGastjesInput,
+        aantalLeidersInput,
+        vraagprijsGastjeInput,
+        vraagprijsLeiderInput,
+        busDagprijsInput,
+        busDaglimietInput,
+        busExtraKmInput,
+        autoBrandstofInput,
+        autoAfstandInput,
+        etenLaagInput,
+        aantalDagenEtenInput,
+        bufferPercentageInput
+      ]);
+
+      kostenTableContainer.addEventListener("change", (event) => {
+        if (event.target.classList.contains("edit-input")) {
+          const id = event.target.dataset.id;
+          const field = event.target.dataset.field;
+          const value = Number(event.target.value) || 0;
+          updateCostItem(id, { [field]: value });
+          setKostenStatus("Bedrag bijgewerkt en opgeslagen.", "success");
+        } else if (event.target.id === "busDagprijs" || event.target.id === "busDaglimiet" || event.target.id === "busExtraKm" || event.target.id === "autoBrandstof" || event.target.id === "autoAfstand" || event.target.id === "etenLaag" || event.target.id === "aantalDagenEten") {
+      calculate();
+        }
+      });
+
+      kostenTableContainer.addEventListener("click", (event) => {
+        if (event.target.closest(".delete-item")) {
+          const button = event.target.closest(".delete-item");
+          const id = button.dataset.id;
+          if (confirm("Weet je zeker dat je dit item wilt verwijderen?")) {
+            deleteCostItem(id);
+            setKostenStatus("Item verwijderd.", "success");
+          }
+        }
+      });
+
+      activateTab("dashboard");
+      loadParamsFromLocalStorage();
+      loadLocalDataset({ silent: true });
+    });
+  </script>
+</div>
+</body></html>
