@@ -116,6 +116,47 @@ npm run build    # Build voor productie
 npm run preview  # Preview productie build
 ```
 
+## iOS App (Capacitor)
+
+De app is geconfigureerd voor iOS deployment via Capacitor.
+
+### Vereisten
+- Mac met macOS
+- Xcode (gratis via App Store)
+- Apple Developer Account ($99/jaar voor App Store)
+
+### Commando's
+
+```bash
+npm run cap:sync    # Build en sync naar iOS
+npm run cap:ios     # Open Xcode project
+npm run cap:add:ios # Voeg iOS platform toe (eerste keer)
+```
+
+### Xcode Openen
+
+```bash
+npm run cap:ios
+```
+
+Of handmatig:
+```bash
+cd ios/App
+open App.xcworkspace
+```
+
+### App Store Deployment
+
+Zie [APP_STORE_GUIDE.md](./APP_STORE_GUIDE.md) voor volledige instructies.
+
+**Snelle stappen:**
+1. Open Xcode: `npm run cap:ios`
+2. Configureer Signing & Capabilities
+3. Test op simulator of device
+4. Archive: Product → Archive
+5. Upload naar App Store Connect
+6. Submit voor review
+
 ## Notities
 
 - Data wordt opgeslagen in Supabase (niet meer in localStorage)

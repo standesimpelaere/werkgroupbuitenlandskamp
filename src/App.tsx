@@ -5,6 +5,7 @@ import Kosten from './pages/Kosten'
 import Planning from './pages/Planning'
 import Werkgroep from './pages/Werkgroep'
 import Gastjes from './pages/Gastjes'
+import Formulas from './pages/Formulas'
 import { VersionProvider } from './context/VersionContext'
 import VersionSelector from './components/VersionSelector'
 
@@ -21,6 +22,7 @@ function App() {
                 <Route path="/planning" element={<Planning />} />
                 <Route path="/gastjes" element={<Gastjes />} />
                 <Route path="/werkgroep" element={<Werkgroep />} />
+                <Route path="/formules" element={<Formulas />} />
               </Routes>
             </Layout>
           </div>

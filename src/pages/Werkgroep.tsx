@@ -950,7 +950,7 @@ export default function Werkgroep() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50/50 dark:bg-[#111418]">
-        <div className="max-w-7xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 pt-16 md:pt-6">
           <p className="text-[#617589]">Data laden...</p>
         </div>
       </div>
@@ -959,7 +959,7 @@ export default function Werkgroep() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#111418]">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8 pt-16 md:pt-6">
         <div className="flex justify-between items-end border-b pb-6">
            <div><h1 className="text-4xl font-black text-[#111418] dark:text-white tracking-tight">Werkgroep</h1><p className="text-[#617589] mt-1">Organisatiehub</p></div>
            <div className="flex items-center gap-2 bg-white p-1.5 rounded-full border shadow-sm">

@@ -2,7 +2,11 @@ import { Link, useLocation } from 'react-router-dom'
 import { useVersion, VERSIONS } from '../context/VersionContext'
 import { useState } from 'react'
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void
+}
+
+export default function Sidebar({ onClose }: SidebarProps) {
   const location = useLocation()
   const { currentVersion, pushSandboxToConcrete, pushSandbox2ToSandbox, getKostenItems, getParameters, openVersionSelector } = useVersion()
   const [showPushConfirm, setShowPushConfirm] = useState(false)
@@ -14,6 +18,7 @@ export default function Sidebar() {
     { path: '/planning', icon: 'event', label: 'Planning' },
     { path: '/gastjes', icon: 'groups', label: 'Gastjes' },
     { path: '/werkgroep', icon: 'group', label: 'Werkgroep' },
+    { path: '/formules', icon: 'functions', label: 'Formules' },
   ]
 
   const isActive = (path: string) => location.pathname === path
@@ -199,7 +204,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex w-64 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-4">
+    <aside className="flex w-64 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-4 h-full overflow-y-auto">
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-primary/20"></div>
@@ -235,6 +240,7 @@ export default function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
+              onClick={() => onClose?.()}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${
                 isActive(item.path)
                   ? 'bg-primary/10 text-primary'

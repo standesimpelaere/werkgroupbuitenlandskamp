@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [parameters, setParameters] = useState<Parameters | null>(null)
   const [planningData, setPlanningData] = useState<PlanningDag[]>([])
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([])
+  const [inputValues, setInputValues] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     loadAllData()
@@ -236,7 +237,7 @@ export default function Dashboard() {
   }, [currentVersion])
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 pt-16 md:pt-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
           <p className="uppercase text-xs font-semibold tracking-[0.25em] text-primary">
@@ -291,8 +292,25 @@ export default function Dashboard() {
                   <input
                     className="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     type="number"
-                    value={parameters?.aantal_gastjes || 37}
-                    onChange={(e) => updateParameter('aantal_gastjes', e.target.value ? Number(e.target.value) : null)}
+                    value={inputValues['aantal_gastjes'] !== undefined ? inputValues['aantal_gastjes'] : (parameters?.aantal_gastjes || 37)}
+                    onChange={(e) => setInputValues(prev => ({ ...prev, 'aantal_gastjes': e.target.value }))}
+                    onBlur={(e) => {
+                      const numValue = e.target.value ? Number(e.target.value) : null
+                      if (numValue !== null && numValue !== (parameters?.aantal_gastjes || 37)) {
+                        updateParameter('aantal_gastjes', numValue)
+                      } else {
+                        setInputValues(prev => {
+                          const next = { ...prev }
+                          delete next['aantal_gastjes']
+                          return next
+                        })
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur()
+                      }
+                    }}
                   />
                 </div>
                 <div>
@@ -303,8 +321,25 @@ export default function Dashboard() {
                     className="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     type="number"
                     step="0.01"
-                    value={parameters?.vraagprijs_gastje || 350}
-                    onChange={(e) => updateParameter('vraagprijs_gastje', e.target.value ? Number(e.target.value) : null)}
+                    value={inputValues['vraagprijs_gastje'] !== undefined ? inputValues['vraagprijs_gastje'] : (parameters?.vraagprijs_gastje || 350)}
+                    onChange={(e) => setInputValues(prev => ({ ...prev, 'vraagprijs_gastje': e.target.value }))}
+                    onBlur={(e) => {
+                      const numValue = e.target.value ? Number(e.target.value) : null
+                      if (numValue !== null && numValue !== (parameters?.vraagprijs_gastje || 350)) {
+                        updateParameter('vraagprijs_gastje', numValue)
+                      } else {
+                        setInputValues(prev => {
+                          const next = { ...prev }
+                          delete next['vraagprijs_gastje']
+                          return next
+                        })
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur()
+                      }
+                    }}
                   />
                 </div>
                 {/* Rij 2: Aantal leiders + Vraagprijs leider */}
@@ -315,8 +350,25 @@ export default function Dashboard() {
                   <input
                     className="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     type="number"
-                    value={parameters?.aantal_leiders || 7}
-                    onChange={(e) => updateParameter('aantal_leiders', e.target.value ? Number(e.target.value) : null)}
+                    value={inputValues['aantal_leiders'] !== undefined ? inputValues['aantal_leiders'] : (parameters?.aantal_leiders || 7)}
+                    onChange={(e) => setInputValues(prev => ({ ...prev, 'aantal_leiders': e.target.value }))}
+                    onBlur={(e) => {
+                      const numValue = e.target.value ? Number(e.target.value) : null
+                      if (numValue !== null && numValue !== (parameters?.aantal_leiders || 7)) {
+                        updateParameter('aantal_leiders', numValue)
+                      } else {
+                        setInputValues(prev => {
+                          const next = { ...prev }
+                          delete next['aantal_leiders']
+                          return next
+                        })
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur()
+                      }
+                    }}
                   />
                 </div>
                 <div>
@@ -327,8 +379,25 @@ export default function Dashboard() {
                     className="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     type="number"
                     step="0.01"
-                    value={parameters?.vraagprijs_leider || 150}
-                    onChange={(e) => updateParameter('vraagprijs_leider', e.target.value ? Number(e.target.value) : null)}
+                    value={inputValues['vraagprijs_leider'] !== undefined ? inputValues['vraagprijs_leider'] : (parameters?.vraagprijs_leider || 150)}
+                    onChange={(e) => setInputValues(prev => ({ ...prev, 'vraagprijs_leider': e.target.value }))}
+                    onBlur={(e) => {
+                      const numValue = e.target.value ? Number(e.target.value) : null
+                      if (numValue !== null && numValue !== (parameters?.vraagprijs_leider || 150)) {
+                        updateParameter('vraagprijs_leider', numValue)
+                      } else {
+                        setInputValues(prev => {
+                          const next = { ...prev }
+                          delete next['vraagprijs_leider']
+                          return next
+                        })
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur()
+                      }
+                    }}
                   />
                 </div>
                 {/* Rij 3: Bufferpercentage */}
@@ -340,8 +409,25 @@ export default function Dashboard() {
                     className="mt-2 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                     type="number"
                     step="0.1"
-                    value={parameters?.buffer_percentage || 5}
-                    onChange={(e) => updateParameter('buffer_percentage', e.target.value ? Number(e.target.value) : null)}
+                    value={inputValues['buffer_percentage'] !== undefined ? inputValues['buffer_percentage'] : (parameters?.buffer_percentage || 5)}
+                    onChange={(e) => setInputValues(prev => ({ ...prev, 'buffer_percentage': e.target.value }))}
+                    onBlur={(e) => {
+                      const numValue = e.target.value ? Number(e.target.value) : null
+                      if (numValue !== null && numValue !== (parameters?.buffer_percentage || 5)) {
+                        updateParameter('buffer_percentage', numValue)
+                      } else {
+                        setInputValues(prev => {
+                          const next = { ...prev }
+                          delete next['buffer_percentage']
+                          return next
+                        })
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur()
+                      }
+                    }}
                   />
                 </div>
               </div>

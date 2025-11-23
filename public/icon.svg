@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#137fec" rx="80"/>
+  
+  <!-- KSA Text -->
+  <text x="256" y="280" font-family="Arial, sans-serif" font-size="180" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">KSA</text>
+  
+  <!-- Decorative line -->
+  <line x1="100" y1="350" x2="412" y2="350" stroke="white" stroke-width="8" stroke-linecap="round"/>
+</svg>
+

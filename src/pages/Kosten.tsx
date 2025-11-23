@@ -24,6 +24,7 @@ export default function Kosten() {
   const [editingField, setEditingField] = useState<{ id: string; field: string } | null>(null)
   const [addModalPrijsType, setAddModalPrijsType] = useState<'totaal' | 'per_persoon'>('per_persoon')
   const [addModalAantalType, setAddModalAantalType] = useState<'getal' | 'iedereen' | 'gastjes' | 'leiders'>('getal')
+  const [inputValues, setInputValues] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
     loadAllData()
@@ -147,6 +148,13 @@ export default function Kosten() {
         .eq('id', parameters.id)
 
       if (error) throw error
+
+      // Clear input value from local state after successful update
+      setInputValues(prev => {
+        const next = { ...prev }
+        delete next[field]
+        return next
+      })
 
       // Log change
       await logChange(currentVersion, tableName, parameters.id, field, oldValue, value, userName)
@@ -619,8 +627,26 @@ export default function Kosten() {
                 </label>
                 <input
                   type="number"
-                  value={parameters?.bus_dagprijs || ''}
-                  onChange={(e) => updateParameter('bus_dagprijs', e.target.value ? Number(e.target.value) : null)}
+                  value={inputValues['bus_dagprijs'] !== undefined ? inputValues['bus_dagprijs'] : (parameters?.bus_dagprijs || '')}
+                  onChange={(e) => setInputValues(prev => ({ ...prev, 'bus_dagprijs': e.target.value }))}
+                  onBlur={(e) => {
+                    const numValue = e.target.value ? Number(e.target.value) : null
+                    const currentValue = parameters?.bus_dagprijs || null
+                    if (numValue !== currentValue) {
+                      updateParameter('bus_dagprijs', numValue)
+                    } else {
+                      setInputValues(prev => {
+                        const next = { ...prev }
+                        delete next['bus_dagprijs']
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   className="mt-0.5 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -630,8 +656,26 @@ export default function Kosten() {
                 </label>
                 <input
                   type="number"
-                  value={parameters?.bus_daglimiet || ''}
-                  onChange={(e) => updateParameter('bus_daglimiet', e.target.value ? Number(e.target.value) : null)}
+                  value={inputValues['bus_daglimiet'] !== undefined ? inputValues['bus_daglimiet'] : (parameters?.bus_daglimiet || '')}
+                  onChange={(e) => setInputValues(prev => ({ ...prev, 'bus_daglimiet': e.target.value }))}
+                  onBlur={(e) => {
+                    const numValue = e.target.value ? Number(e.target.value) : null
+                    const currentValue = parameters?.bus_daglimiet || null
+                    if (numValue !== currentValue) {
+                      updateParameter('bus_daglimiet', numValue)
+                    } else {
+                      setInputValues(prev => {
+                        const next = { ...prev }
+                        delete next['bus_daglimiet']
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   className="mt-0.5 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -642,8 +686,26 @@ export default function Kosten() {
                 <input
                   type="number"
                   step="0.01"
-                  value={parameters?.bus_extra_km || ''}
-                  onChange={(e) => updateParameter('bus_extra_km', e.target.value ? Number(e.target.value) : null)}
+                  value={inputValues['bus_extra_km'] !== undefined ? inputValues['bus_extra_km'] : (parameters?.bus_extra_km || '')}
+                  onChange={(e) => setInputValues(prev => ({ ...prev, 'bus_extra_km': e.target.value }))}
+                  onBlur={(e) => {
+                    const numValue = e.target.value ? Number(e.target.value) : null
+                    const currentValue = parameters?.bus_extra_km || null
+                    if (numValue !== currentValue) {
+                      updateParameter('bus_extra_km', numValue)
+                    } else {
+                      setInputValues(prev => {
+                        const next = { ...prev }
+                        delete next['bus_extra_km']
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   className="mt-0.5 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -725,8 +787,26 @@ export default function Kosten() {
                 <input
                   type="number"
                   step="0.01"
-                  value={parameters?.auto_brandstof || ''}
-                  onChange={(e) => updateParameter('auto_brandstof', e.target.value ? Number(e.target.value) : null)}
+                  value={inputValues['auto_brandstof'] !== undefined ? inputValues['auto_brandstof'] : (parameters?.auto_brandstof || '')}
+                  onChange={(e) => setInputValues(prev => ({ ...prev, 'auto_brandstof': e.target.value }))}
+                  onBlur={(e) => {
+                    const numValue = e.target.value ? Number(e.target.value) : null
+                    const currentValue = parameters?.auto_brandstof || null
+                    if (numValue !== currentValue) {
+                      updateParameter('auto_brandstof', numValue)
+                    } else {
+                      setInputValues(prev => {
+                        const next = { ...prev }
+                        delete next['auto_brandstof']
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   className="mt-0.5 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -736,8 +816,26 @@ export default function Kosten() {
                 </label>
                 <input
                   type="number"
-                  value={parameters?.auto_afstand || ''}
-                  onChange={(e) => updateParameter('auto_afstand', e.target.value ? Number(e.target.value) : null)}
+                  value={inputValues['auto_afstand'] !== undefined ? inputValues['auto_afstand'] : (parameters?.auto_afstand || '')}
+                  onChange={(e) => setInputValues(prev => ({ ...prev, 'auto_afstand': e.target.value }))}
+                  onBlur={(e) => {
+                    const numValue = e.target.value ? Number(e.target.value) : null
+                    const currentValue = parameters?.auto_afstand || null
+                    if (numValue !== currentValue) {
+                      updateParameter('auto_afstand', numValue)
+                    } else {
+                      setInputValues(prev => {
+                        const next = { ...prev }
+                        delete next['auto_afstand']
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   className="mt-0.5 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -844,8 +942,26 @@ export default function Kosten() {
                 <input
                   type="number"
                   step="0.01"
-                  value={parameters?.eten_prijs_per_dag || ''}
-                  onChange={(e) => updateParameter('eten_prijs_per_dag', e.target.value ? Number(e.target.value) : null)}
+                  value={inputValues['eten_prijs_per_dag'] !== undefined ? inputValues['eten_prijs_per_dag'] : (parameters?.eten_prijs_per_dag || '')}
+                  onChange={(e) => setInputValues(prev => ({ ...prev, 'eten_prijs_per_dag': e.target.value }))}
+                  onBlur={(e) => {
+                    const numValue = e.target.value ? Number(e.target.value) : null
+                    const currentValue = parameters?.eten_prijs_per_dag || null
+                    if (numValue !== currentValue) {
+                      updateParameter('eten_prijs_per_dag', numValue)
+                    } else {
+                      setInputValues(prev => {
+                        const next = { ...prev }
+                        delete next['eten_prijs_per_dag']
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   className="mt-0.5 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -855,8 +971,26 @@ export default function Kosten() {
                 </label>
                 <input
                   type="number"
-                  value={parameters?.aantal_dagen_eten || ''}
-                  onChange={(e) => updateParameter('aantal_dagen_eten', e.target.value ? Number(e.target.value) : null)}
+                  value={inputValues['aantal_dagen_eten'] !== undefined ? inputValues['aantal_dagen_eten'] : (parameters?.aantal_dagen_eten || '')}
+                  onChange={(e) => setInputValues(prev => ({ ...prev, 'aantal_dagen_eten': e.target.value }))}
+                  onBlur={(e) => {
+                    const numValue = e.target.value ? Number(e.target.value) : null
+                    const currentValue = parameters?.aantal_dagen_eten || null
+                    if (numValue !== currentValue) {
+                      updateParameter('aantal_dagen_eten', numValue)
+                    } else {
+                      setInputValues(prev => {
+                        const next = { ...prev }
+                        delete next['aantal_dagen_eten']
+                        return next
+                      })
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   className="mt-0.5 w-full rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
@@ -1123,7 +1257,7 @@ export default function Kosten() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-4 md:space-y-6 pt-16 md:pt-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-semibold text-[#111418] dark:text-white">Kostenoverzicht</h2>

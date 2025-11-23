@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Icon Generator</title>
+</head>
+<body>
+  <h1>PWA Icon Generator</h1>
+  <canvas id="canvas" width="512" height="512" style="border: 1px solid #ccc;"></canvas>
+  <br><br>
+  <button onclick="downloadIcon(512)">Download 512x512</button>
+  <button onclick="downloadIcon(192)">Download 192x192</button>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Draw background
+    ctx.fillStyle = '#137fec';
+    ctx.fillRect(0, 0, 512, 512);
+    
+    // Draw rounded corners
+    ctx.beginPath();
+    ctx.moveTo(80, 0);
+    ctx.lineTo(432, 0);
+    ctx.quadraticCurveTo(512, 0, 512, 80);
+    ctx.lineTo(512, 432);
+    ctx.quadraticCurveTo(512, 512, 432, 512);
+    ctx.lineTo(80, 512);
+    ctx.quadraticCurveTo(0, 512, 0, 432);
+    ctx.lineTo(0, 80);
+    ctx.quadraticCurveTo(0, 0, 80, 0);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw KSA text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 180px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('KSA', 256, 240);
+    
+    // Draw line
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(100, 350);
+    ctx.lineTo(412, 350);
+    ctx.stroke();
+    
+    function downloadIcon(size) {
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = size;
+      tempCanvas.height = size;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(canvas, 0, 0, size, size);
+      
+      tempCanvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `icon-${size}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -380,7 +380,7 @@ export default function Planning() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div className="p-4 md:p-8 pt-16 md:pt-8">
         <div className="text-center py-12">
           <p className="text-[#617589] dark:text-gray-400">Planning laden...</p>
         </div>
@@ -394,7 +394,7 @@ export default function Planning() {
   const hourHeight = 60 // pixels per hour
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-4 md:space-y-6 pt-16 md:pt-8">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
