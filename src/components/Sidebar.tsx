@@ -207,7 +207,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
     <aside className="flex w-64 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-4 h-full overflow-y-auto">
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 bg-primary/20"></div>
+          <img 
+            src="/logo.svg" 
+            alt="KSA Logo" 
+            className="w-10 h-10 rounded-full object-contain"
+          />
           <div className="flex flex-col">
             <h1 className="text-[#111418] dark:text-gray-100 text-base font-medium leading-normal">
               KSA Buitenlands Kamp

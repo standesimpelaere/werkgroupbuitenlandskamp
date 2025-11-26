@@ -1,0 +1,35 @@
+{
+	"appId": "com.ksa.buitenlandskamp",
+	"appName": "KSA Buitenlands Kamp",
+	"webDir": "public",
+	"server": {
+		"androidScheme": "https",
+		"iosScheme": "https"
+	},
+	"ios": {
+		"contentInset": "automatic",
+		"scrollEnabled": true
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 2000,
+			"launchAutoHide": true,
+			"backgroundColor": "#2E7D32",
+			"androidSplashResourceName": "splash",
+			"androidScaleType": "CENTER_CROP",
+			"showSpinner": false,
+			"iosSpinnerStyle": "small",
+			"spinnerColor": "#ffffff"
+		},
+		"StatusBar": {
+			"style": "dark",
+			"backgroundColor": "#ffffff"
+		}
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"StatusBarPlugin"
+	]
+}

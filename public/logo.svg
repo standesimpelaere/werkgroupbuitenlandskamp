@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background (transparent) -->
+  <rect width="512" height="512" fill="transparent"/>
+  
+  <!-- Winter Hat/Beanie -->
+  <!-- Main hat body (medium vibrant blue) -->
+  <path d="M 256 100 Q 190 100 130 135 Q 70 170 70 250 Q 70 330 130 365 Q 190 400 256 400 Q 322 400 382 365 Q 442 330 442 250 Q 442 170 382 135 Q 322 100 256 100 Z" 
+        fill="#4A90E2" stroke="none"/>
+  
+  <!-- Folded brim at bottom (darker blue for depth) -->
+  <path d="M 70 250 Q 70 275 95 285 Q 120 295 170 300 Q 220 305 256 305 Q 292 305 342 300 Q 392 295 417 285 Q 442 275 442 250" 
+        fill="#357ABD" stroke="none"/>
+  
+  <!-- Top rounded part (lighter blue highlight) -->
+  <ellipse cx="256" cy="200" rx="160" ry="90" fill="#5BA3F5"/>
+  
+  <!-- Orange pom-pom band (small band connecting pom-pom) -->
+  <ellipse cx="256" cy="130" rx="35" ry="10" fill="#FF6B35"/>
+  
+  <!-- Orange pom-pom on top (bright warm orange) -->
+  <circle cx="256" cy="100" r="30" fill="#FF6B35"/>
+  <circle cx="256" cy="100" r="24" fill="#FF8C5A"/>
+  <!-- Highlight on pom-pom -->
+  <ellipse cx="248" cy="92" rx="8" ry="10" fill="#FFB89A" opacity="0.6"/>
+</svg>
+

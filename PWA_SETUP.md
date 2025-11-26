@@ -79,3 +79,4 @@ De PWA werkt het beste via HTTPS (vereist voor service workers):
 - Vrienden kunnen de app installeren door de URL te bezoeken
 - Updates worden automatisch gedownload wanneer beschikbaar
 
+
