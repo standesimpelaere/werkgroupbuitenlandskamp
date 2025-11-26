@@ -80,3 +80,5 @@ De PWA werkt het beste via HTTPS (vereist voor service workers):
 - Updates worden automatisch gedownload wanneer beschikbaar
 
 
+
+

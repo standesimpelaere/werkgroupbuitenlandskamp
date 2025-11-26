@@ -36,3 +36,5 @@ Tot je echte iconen hebt, kun je de `icon.svg` in `public/` gebruiken als basis,
 - De PWA is klaar voor gebruik!
 
 
+
+

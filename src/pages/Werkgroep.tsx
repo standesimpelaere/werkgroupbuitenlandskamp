@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 
 type Tab = 'taken' | 'accommodatie' | 'dossiers' | 'roadmap'
 type RoadmapViewMode = 'waves' | 'themes'
+type SortOption = 'persoon' | 'status' | 'thema' | 'datum'
 
 interface TeamMember {
   id: string
@@ -93,11 +94,38 @@ interface RoadmapItem {
   steps?: RoadmapStep[]
   country?: 'Nederland' | 'België' | 'Frankrijk' | null
   is_current_wave?: boolean
-  is_archived?: boolean
   created_at?: string
   updated_at?: string
 }
 
+interface ThemeNote {
+  id: string
+  theme: string
+  country: 'Nederland' | 'België' | 'Frankrijk'
+  content: string
+  created_at?: string
+  updated_at?: string
+}
+
+interface ThemeContribution {
+  id: string
+  theme: string
+  country: 'Nederland' | 'België' | 'Frankrijk'
+  content: string
+  author_id?: string | null
+  created_at?: string
+}
+
+interface ThemeAttachment {
+  id: string
+  theme: string
+  country: 'Nederland' | 'België' | 'Frankrijk'
+  name: string
+  type: 'file' | 'link'
+  url: string
+  size?: number
+  created_at?: string
+}
 
 interface RoadmapTheme {
   id: string
@@ -210,8 +238,8 @@ const INITIAL_ACCOMMODATIONS: AccommodationLocation[] = [
 export default function Werkgroep() {
   const [activeTab, setActiveTab] = useState<Tab>('taken')
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
 
   // Data
@@ -239,9 +267,13 @@ export default function Werkgroep() {
   const [editingWave, setEditingWave] = useState<RoadmapWave | null>(null)
   const [isRoadmapItemModalOpen, setIsRoadmapItemModalOpen] = useState(false)
   const [editingRoadmapItem, setEditingRoadmapItem] = useState<RoadmapItem | null>(null)
-  const [selectedRoadmapItem, setSelectedRoadmapItem] = useState<RoadmapItem | null>(null)
-  const [showArchived, setShowArchived] = useState(false)
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [sortOption, setSortOption] = useState<SortOption>('persoon')
+  const [isThemePanelOpen, setIsThemePanelOpen] = useState(false)
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null)
+  const [selectedCountry, setSelectedCountry] = useState<'Nederland' | 'België' | 'Frankrijk'>('Nederland')
+  const [themeNotes, setThemeNotes] = useState<Record<string, Record<string, ThemeNote>>>({}) // theme -> country -> note
+  const [themeContributions, setThemeContributions] = useState<Record<string, Record<string, ThemeContribution[]>>>({}) // theme -> country -> contributions[]
+  const [themeAttachments, setThemeAttachments] = useState<Record<string, Record<string, ThemeAttachment[]>>>({}) // theme -> country -> attachments[]
   const [roadmapAttachments, setRoadmapAttachments] = useState<Record<string, RoadmapAttachment[]>>({})
   const [modalNotes, setModalNotes] = useState('')
   const [modalSteps, setModalSteps] = useState<RoadmapStep[]>([])
@@ -257,7 +289,6 @@ export default function Werkgroep() {
   const loadAllData = async () => {
     try {
       setLoading(true)
-      setError(null)
       await Promise.all([
         loadAccommodations(),
         loadMemberSpaces(),
@@ -265,7 +296,6 @@ export default function Werkgroep() {
       ])
     } catch (error) {
       console.error('Error loading data:', error)
-      setError(error instanceof Error ? error.message : 'Er is een fout opgetreden bij het laden van de data')
     } finally {
       setLoading(false)
     }
@@ -281,6 +311,7 @@ export default function Werkgroep() {
         loadRoadmapWaves(),
         loadRoadmapItems(),
         loadRoadmapThemes(),
+        loadThemeData(),
       ])
     } catch (error) {
       console.error('Error loading roadmap data:', error)
@@ -397,6 +428,82 @@ export default function Werkgroep() {
     }
   }
 
+  const loadThemeData = async () => {
+    try {
+      const countries: ('Nederland' | 'België' | 'Frankrijk')[] = ['Nederland', 'België', 'Frankrijk']
+      
+      // Load theme notes
+      const { data: notesData } = await supabase
+        .from('werkgroep_theme_notes')
+        .select('*')
+      
+      if (notesData) {
+        const notesMap: Record<string, Record<string, ThemeNote>> = {}
+        notesData.forEach(note => {
+          if (!notesMap[note.theme]) notesMap[note.theme] = {}
+          notesMap[note.theme][note.country] = {
+            id: note.id,
+            theme: note.theme,
+            country: note.country,
+            content: note.content,
+            created_at: note.created_at,
+            updated_at: note.updated_at,
+          }
+        })
+        setThemeNotes(notesMap)
+      }
+
+      // Load theme contributions
+      const { data: contributionsData } = await supabase
+        .from('werkgroep_theme_contributions')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (contributionsData) {
+        const contributionsMap: Record<string, Record<string, ThemeContribution[]>> = {}
+        contributionsData.forEach(contrib => {
+          if (!contributionsMap[contrib.theme]) contributionsMap[contrib.theme] = {}
+          if (!contributionsMap[contrib.theme][contrib.country]) contributionsMap[contrib.theme][contrib.country] = []
+          contributionsMap[contrib.theme][contrib.country].push({
+            id: contrib.id,
+            theme: contrib.theme,
+            country: contrib.country,
+            content: contrib.content,
+            author_id: contrib.author_id || null,
+            created_at: contrib.created_at,
+          })
+        })
+        setThemeContributions(contributionsMap)
+      }
+
+      // Load theme attachments
+      const { data: attachmentsData } = await supabase
+        .from('werkgroep_theme_attachments')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (attachmentsData) {
+        const attachmentsMap: Record<string, Record<string, ThemeAttachment[]>> = {}
+        attachmentsData.forEach(att => {
+          if (!attachmentsMap[att.theme]) attachmentsMap[att.theme] = {}
+          if (!attachmentsMap[att.theme][att.country]) attachmentsMap[att.theme][att.country] = []
+          attachmentsMap[att.theme][att.country].push({
+            id: att.id,
+            theme: att.theme,
+            country: att.country,
+            name: att.name,
+            type: att.type as 'file' | 'link',
+            url: att.url,
+            size: att.size || undefined,
+            created_at: att.created_at,
+          })
+        })
+        setThemeAttachments(attachmentsMap)
+      }
+    } catch (error) {
+      console.error('Error loading theme data:', error)
+    }
+  }
 
   const setupRoadmapTables = async () => {
     try {
@@ -528,7 +635,6 @@ export default function Werkgroep() {
           steps: (item.steps ? (Array.isArray(item.steps) ? item.steps : JSON.parse(item.steps)) : []) as RoadmapStep[],
           country: item.country as RoadmapItem['country'] || null,
           is_current_wave: item.is_current_wave || false,
-          is_archived: item.is_archived || false,
           created_at: item.created_at,
           updated_at: item.updated_at,
         }))
@@ -1169,24 +1275,7 @@ export default function Werkgroep() {
 
   // Statistics (based on current wave items)
   const currentWave = getCurrentWave()
-  // Get items that are marked as current wave OR are the first item per theme (based on order)
-  const currentWaveItems = (() => {
-    const markedItems = roadmapItems.filter(item => item.is_current_wave === true)
-    const themes = roadmapThemes.length > 0 ? roadmapThemes : DEFAULT_THEMES
-    const firstItemsPerTheme = themes.map(theme => {
-      const themeItems = roadmapItems
-        .filter(item => item.theme === theme.name && !item.is_archived)
-        .sort((a, b) => (a.order || 999) - (b.order || 999))
-      return themeItems[0]
-    }).filter(Boolean) as RoadmapItem[]
-    
-    // Combine marked items and first items, remove duplicates
-    const allItems = [...markedItems, ...firstItemsPerTheme]
-    const uniqueItems = allItems.filter((item, index, self) => 
-      index === self.findIndex(i => i.id === item.id)
-    )
-    return uniqueItems
-  })()
+  const currentWaveItems = roadmapItems.filter(item => item.is_current_wave === true)
   const stats = {
     total: currentWaveItems.length,
     completed: currentWaveItems.filter(t => t.status === 'Klaar').length,
@@ -1652,7 +1741,6 @@ export default function Werkgroep() {
         due_date: (formData.get('dueDate') as string) || null,
         notes: modalNotes || null,
         steps: modalSteps.length > 0 ? JSON.stringify(modalSteps) : null,
-        is_current_wave: formData.get('isCurrentWave') === 'on',
         order: editingRoadmapItem?.order || 0,
         updated_at: new Date().toISOString(),
       }
@@ -1665,45 +1753,28 @@ export default function Werkgroep() {
 
         if (error) throw error
 
-        await loadRoadmapItems()
+        setRoadmapItems(roadmapItems.map(item => 
+          item.id === editingRoadmapItem.id 
+            ? { ...item, ...itemData, notes: modalNotes || undefined, steps: modalSteps, id: editingRoadmapItem.id }
+            : item
+        ))
       } else {
-        // Determine order for new item
-        const insertAfterId = formData.get('insertAfterId') as string | null
-        let newOrder = 0
-        
-        if (insertAfterId) {
-          const afterItem = roadmapItems.find(i => i.id === insertAfterId)
-          if (afterItem) {
-            // Get next order value
-            const themeItems = roadmapItems
-              .filter(i => i.theme === itemData.theme && !i.is_archived)
-              .sort((a, b) => (a.order || 999) - (b.order || 999))
-            const afterIndex = themeItems.findIndex(i => i.id === insertAfterId)
-            if (afterIndex >= 0 && afterIndex < themeItems.length - 1) {
-              const nextItem = themeItems[afterIndex + 1]
-              newOrder = (afterItem.order || 999) + ((nextItem.order || 999) - (afterItem.order || 999)) / 2
-            } else {
-              newOrder = (afterItem.order || 999) + 1
-            }
-          }
-        } else {
-          // Get max order for this theme
-          const themeItems = roadmapItems.filter(i => i.theme === itemData.theme && !i.is_archived)
-          const maxOrder = Math.max(...themeItems.map(i => i.order || 0), 0)
-          newOrder = maxOrder + 1
-        }
-
-        const itemDataWithOrder = { ...itemData, order: newOrder }
-        
         const { data, error } = await supabase
           .from('werkgroep_roadmap_items')
-          .insert(itemDataWithOrder)
+          .insert(itemData)
           .select()
           .single()
 
         if (error) throw error
 
-        await loadRoadmapItems()
+        setRoadmapItems([...roadmapItems, {
+          id: data.id,
+          ...itemData,
+          notes: modalNotes || undefined,
+          steps: modalSteps,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+        }])
       }
 
       setIsRoadmapItemModalOpen(false)
@@ -1746,45 +1817,11 @@ export default function Werkgroep() {
 
       if (error) throw error
 
-      await loadRoadmapItems()
+      setRoadmapItems(roadmapItems.map(item => 
+        item.id === itemId ? { ...item, status: newStatus } : item
+      ))
     } catch (error) {
       console.error('Error updating roadmap item status:', error)
-    }
-  }
-
-  const handleReorderItem = async (itemId: string, direction: 'up' | 'down') => {
-    try {
-      const item = roadmapItems.find(i => i.id === itemId)
-      if (!item) return
-
-      const themeItems = roadmapItems
-        .filter(i => i.theme === item.theme && !i.is_archived)
-        .sort((a, b) => (a.order || 999) - (b.order || 999))
-      
-      const currentIndex = themeItems.findIndex(i => i.id === itemId)
-      if (currentIndex === -1) return
-
-      const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
-      if (targetIndex < 0 || targetIndex >= themeItems.length) return
-
-      const targetItem = themeItems[targetIndex]
-      const currentOrder = item.order || 999
-      const targetOrder = targetItem.order || 999
-
-      // Swap orders
-      await supabase
-        .from('werkgroep_roadmap_items')
-        .update({ order: targetOrder, updated_at: new Date().toISOString() })
-        .eq('id', itemId)
-
-      await supabase
-        .from('werkgroep_roadmap_items')
-        .update({ order: currentOrder, updated_at: new Date().toISOString() })
-        .eq('id', targetItem.id)
-
-      await loadRoadmapItems()
-    } catch (error) {
-      console.error('Error reordering item:', error)
     }
   }
 
@@ -1792,188 +1829,217 @@ export default function Werkgroep() {
   // --- RENDER ---
 
   const renderTasks = () => {
-    // Get all items from roadmap (not just currentWaveItems) - automatically show first item per category
-    // Group by theme and get first item per theme (based on order)
-    const themes = roadmapThemes.length > 0 ? roadmapThemes : DEFAULT_THEMES
-    const sortedThemes = [...themes].sort((a, b) => (a.order || 999) - (b.order || 999))
+    // Filter items by current wave, exclude completed items, and selected member
+    let filtered = currentWaveItems
+      .filter(item => item.status !== 'Klaar')
+      .filter(item => 
+        selectedMemberId ? item.assignee_id === selectedMemberId : true
+      )
 
-    // Helper: Get items for a theme, sorted by order, showing completed items with next items
-    const getThemeItems = (themeName: string) => {
-      // Get ALL items for this theme from roadmapItems (not just currentWaveItems)
-      const themeItems = roadmapItems
-        .filter(item => item.theme === themeName && !item.is_archived)
-        .filter(item => selectedMemberId ? item.assignee_id === selectedMemberId : true)
-        .sort((a, b) => (a.order || 999) - (b.order || 999))
-      
-      if (themeItems.length === 0) return []
-
-      // Find first incomplete item
-      const firstIncompleteIndex = themeItems.findIndex(item => item.status !== 'Klaar')
-      
-      if (firstIncompleteIndex === -1) {
-        // All items are completed, show last completed item
-        return [themeItems[themeItems.length - 1]]
+    // Sort items
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortOption) {
+        case 'persoon':
+          const aName = a.assignee_id ? TEAM_MEMBERS.find(m => m.id === a.assignee_id)?.name || '' : 'ZZZ'
+          const bName = b.assignee_id ? TEAM_MEMBERS.find(m => m.id === b.assignee_id)?.name || '' : 'ZZZ'
+          return aName.localeCompare(bName)
+        case 'status':
+          const statusOrder = { 'Te doen': 0, 'Mee bezig': 1, 'Klaar': 2 }
+          return statusOrder[a.status] - statusOrder[b.status]
+        case 'thema':
+          return a.theme.localeCompare(b.theme)
+        case 'datum':
+          if (!a.due_date && !b.due_date) return 0
+          if (!a.due_date) return 1
+          if (!b.due_date) return -1
+          return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        default:
+          return 0
       }
-
-      // Show completed items before first incomplete, plus first incomplete and next
-      const result: RoadmapItem[] = []
-      
-      // Add completed items before first incomplete
-      for (let i = 0; i < firstIncompleteIndex; i++) {
-        result.push(themeItems[i])
-      }
-      
-      // Add first incomplete item
-      result.push(themeItems[firstIncompleteIndex])
-      
-      // Add next item if exists
-      if (firstIncompleteIndex + 1 < themeItems.length) {
-        result.push(themeItems[firstIncompleteIndex + 1])
-      }
-      
-      return result
-    }
+    })
 
     return (
-      <div className="space-y-4">
-        {sortedThemes.map(theme => {
-          const themeItems = getThemeItems(theme.name)
-          
-          if (themeItems.length === 0) {
-            // Show placeholder for empty category
-            return (
-              <div key={theme.id} className="bg-white dark:bg-background-dark rounded-xl border border-[#dbe0e6] dark:border-gray-700 overflow-hidden">
-                <div className="flex items-stretch">
-                  <div className="flex-1 flex flex-col">
-                    <div className="px-4 py-8 text-center text-gray-400 text-sm">
-                      Geen volgende items in {theme.name}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-800/50 border-l border-gray-200 dark:border-gray-700 flex-shrink-0">
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${theme.color}20`, color: theme.color }}
-                    >
-                      <span className="material-symbols-outlined text-[20px]">{theme.icon || 'folder'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          }
+      <div className="space-y-6">
+        {/* Controls */}
+        <div className="flex justify-between items-center">
+           <div className="flex gap-2">
+             <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+               <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm text-[#111418] dark:text-white' : 'text-gray-500'}`}>
+                 <span className="material-symbols-outlined text-[18px]">list</span> Lijst
+               </button>
+               <button onClick={() => setViewMode('kanban')} className={`px-3 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 ${viewMode === 'kanban' ? 'bg-white dark:bg-gray-700 shadow-sm text-[#111418] dark:text-white' : 'text-gray-500'}`}>
+                 <span className="material-symbols-outlined text-[18px]">view_column</span> Bord
+               </button>
+             </div>
+             <select 
+               value={sortOption} 
+               onChange={(e) => setSortOption(e.target.value as SortOption)}
+               className="px-3 py-1.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-bold"
+             >
+               <option value="persoon">Sorteer op: Persoon</option>
+               <option value="status">Sorteer op: Status</option>
+               <option value="thema">Sorteer op: Thema</option>
+               <option value="datum">Sorteer op: Datum</option>
+             </select>
+           </div>
+           <button onClick={() => { 
+            setEditingRoadmapItem(null)
+            setModalNotes('')
+            setModalSteps([])
+            setNewStepTitle('')
+            setAttachmentLinkInput(null)
+            setIsRoadmapItemModalOpen(true)
+          }} className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 font-bold shadow-sm">
+             <span className="material-symbols-outlined text-[20px]">add</span> Nieuw Item
+           </button>
+        </div>
 
-          return (
-            <div key={theme.id} className="bg-white dark:bg-background-dark rounded-xl border border-[#dbe0e6] dark:border-gray-700 overflow-hidden">
-              <div className="flex items-stretch">
-                {/* Main Content Section */}
-                <div className="flex-1 flex flex-col">
-                  {themeItems.map((item, index) => {
-                    const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
-                    const isCompleted = item.status === 'Klaar'
-                    
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => {
-                          setSelectedRoadmapItem(item)
-                          setEditingRoadmapItem(item)
-                          setModalNotes(item.notes || '')
-                          setModalSteps(item.steps || [])
-                          setNewStepTitle('')
-                          setAttachmentLinkInput(null)
-                          setIsRoadmapItemModalOpen(true)
-                        }}
-                        className={`group flex items-center gap-3 flex-1 min-w-0 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer ${
-                          index !== themeItems.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
-                        } ${isCompleted ? 'opacity-60 bg-gray-50 dark:bg-gray-800/30' : ''}`}
-                      >
+        {/* View: Kanban */}
+        {viewMode === 'kanban' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-x-auto pb-4">
+            {['Te doen', 'Mee bezig', 'Klaar'].map(status => {
+              const colItems = filtered.filter(item => item.status === status)
+              return (
+                <div key={status} className="flex flex-col gap-3 min-w-[250px]">
+                  <div className="flex justify-between items-center px-1 mb-1">
+                    <h3 className="font-bold text-sm uppercase tracking-wider text-gray-500">{status}</h3>
+                    <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold px-2 py-0.5 rounded-full">{colItems.length}</span>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {colItems.map(item => {
+                      const theme = roadmapThemes.find(t => t.name === item.theme) || DEFAULT_THEMES.find(t => t.name === item.theme)
+                      const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
+                      return (
                         <div 
-                          onClick={async (e) => { 
-                            e.stopPropagation()
-                            const newStatus = item.status === 'Klaar' ? 'Te doen' : item.status === 'Te doen' ? 'Mee bezig' : 'Klaar'
-                            handleUpdateRoadmapItemStatus(item.id, newStatus)
+                          key={item.id} 
+                          onClick={() => { 
+                            setSelectedTheme(item.theme)
+                            setIsThemePanelOpen(true)
                           }}
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                            item.status === 'Klaar'
-                              ? 'bg-green-500 border-green-500 text-white'
-                              : item.status === 'Mee bezig'
-                              ? 'bg-blue-500 border-blue-500 text-white'
-                              : 'border-gray-300 hover:border-primary'
-                          }`}
+                          className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-pointer"
                         >
-                          {item.status === 'Klaar' && <span className="material-symbols-outlined text-sm font-bold">check</span>}
-                          {item.status === 'Mee bezig' && <span className="material-symbols-outlined text-sm font-bold">play_arrow</span>}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3">
-                            <span className={`font-semibold text-[#111418] dark:text-white truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
-                              {item.title}
-                            </span>
-                            {assignee && (
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
-                                <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300">
-                                  {assignee.name.substring(0, 2)}
-                                </div>
-                                <span>{assignee.name}</span>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div
+                              className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: `${theme?.color || '#6b7280'}20`, color: theme?.color || '#6b7280' }}
+                            >
+                              <span className="material-symbols-outlined text-[14px]">{theme?.icon || 'folder'}</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-500">{theme?.name || item.theme}</span>
+                          </div>
+                          <h4 className="font-bold text-sm text-[#111418] dark:text-white mb-2 line-clamp-2">{item.title}</h4>
+                          <div className="flex justify-between items-center gap-2">
+                            {assignee ? (
+                              <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300" title={assignee.name}>
+                                {assignee.name.substring(0, 2)}
                               </div>
-                            )}
-                            {item.due_date && (
-                              <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
-                                <span className="material-symbols-outlined text-[14px]">event</span>
-                                {new Date(item.due_date).toLocaleDateString('nl-NL')}
-                              </span>
-                            )}
+                            ) : <span></span>}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {isCompleted && (
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation()
-                                if (!confirm('Item naar archief verplaatsen?')) return
-                                try {
-                                  const { error } = await supabase
-                                    .from('werkgroep_roadmap_items')
-                                    .update({ is_archived: true })
-                                    .eq('id', item.id)
-                                  if (error) throw error
-                                  await loadRoadmapItems()
-                                } catch (error) {
-                                  console.error('Error archiving item:', error)
-                                  alert('Fout bij archiveren')
-                                }
-                              }}
-                              className="px-3 py-1 rounded text-xs font-bold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-orange-900/50"
-                            >
-                              Verplaats naar archief
-                            </button>
-                          )}
-                          <div className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${getRoadmapStatusColor(item.status)}`}>
-                            {item.status}
+                      )
+                    })}
+                    {colItems.length === 0 && (
+                      <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center text-xs text-gray-400">Leeg</div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* View: List */}
+        {viewMode === 'list' && (
+          <div className="space-y-4">
+            {filtered.length === 0 ? (
+              <p className="text-center text-gray-400 py-8">
+                {currentWave ? `Geen items in ${currentWave.name}` : 'Geen actieve wave. Stel wave datums in.'}
+              </p>
+            ) : (
+              (() => {
+                // Group items by theme
+                const groupedByTheme = filtered.reduce((acc, item) => {
+                  if (!acc[item.theme]) {
+                    acc[item.theme] = []
+                  }
+                  acc[item.theme].push(item)
+                  return acc
+                }, {} as Record<string, typeof filtered>)
+
+                return Object.entries(groupedByTheme).map(([themeName, items]) => {
+                  const theme = roadmapThemes.find(t => t.name === themeName) || DEFAULT_THEMES.find(t => t.name === themeName)
+                  return (
+                    <div key={themeName} className="bg-white dark:bg-background-dark rounded-xl border border-[#dbe0e6] dark:border-gray-700 overflow-hidden">
+                      <div className="flex items-stretch">
+                        {/* Main Content Section - All items */}
+                        <div className="flex-1 flex flex-col">
+                          {items.map((item, index) => {
+                            const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => { setSelectedTheme(item.theme); setIsThemePanelOpen(true); }}
+                                className={`group flex items-center gap-3 flex-1 min-w-0 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer ${
+                                  index !== items.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
+                                }`}
+                              >
+                                <div 
+                                  onClick={async (e) => { 
+                                    e.stopPropagation()
+                                    const newStatus = item.status === 'Klaar' ? 'Te doen' : item.status === 'Te doen' ? 'Mee bezig' : 'Klaar'
+                                    handleUpdateRoadmapItemStatus(item.id, newStatus)
+                                  }}
+                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                                    item.status === 'Klaar'
+                                      ? 'bg-green-500 border-green-500 text-white'
+                                      : item.status === 'Mee bezig'
+                                      ? 'bg-blue-500 border-blue-500 text-white'
+                                      : 'border-gray-300 hover:border-primary'
+                                  }`}
+                                >
+                                  {item.status === 'Klaar' && <span className="material-symbols-outlined text-sm font-bold">check</span>}
+                                  {item.status === 'Mee bezig' && <span className="material-symbols-outlined text-sm font-bold">play_arrow</span>}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-3">
+                                    <span className={`font-semibold text-[#111418] dark:text-white truncate ${item.status === 'Klaar' ? 'line-through text-gray-400' : ''}`}>{item.title}</span>
+                                    {assignee && (
+                                      <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
+                                        <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                                          {assignee.name.substring(0, 2)}
+                                        </div>
+                                        <span>{assignee.name}</span>
+                                      </div>
+                                    )}
+                                    {item.due_date && (
+                                      <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
+                                        <span className="material-symbols-outlined text-[14px]">event</span>
+                                        {new Date(item.due_date).toLocaleDateString('nl-NL')}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${getRoadmapStatusColor(item.status)}`}>{item.status}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        
+                        {/* Category Icon - Right Side */}
+                        <div className="flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-800/50 border-l border-gray-200 dark:border-gray-700 flex-shrink-0">
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: `${theme?.color || '#6b7280'}20`, color: theme?.color || '#6b7280' }}
+                          >
+                            <span className="material-symbols-outlined text-[20px]">{theme?.icon || 'folder'}</span>
                           </div>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-                
-                {/* Category Icon - Right Side */}
-                <div className="flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-800/50 border-l border-gray-200 dark:border-gray-700 flex-shrink-0">
-                  <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${theme.color}20`, color: theme.color }}
-                  >
-                    <span className="material-symbols-outlined text-[20px]">{theme.icon || 'folder'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-        
-        {allItems.length === 0 && (
-          <div className="text-center text-gray-400 py-8">
-            {currentWave ? `Geen items in ${currentWave.name}` : 'Geen actieve wave. Stel wave datums in.'}
+                    </div>
+                  )
+                })
+              })()
+            )}
           </div>
         )}
       </div>
@@ -2030,293 +2096,192 @@ export default function Werkgroep() {
   )
 
 
-  const renderRoadmap = () => {
-    // Filter items based on archive toggle
-    const filteredItems = roadmapItems.filter(item => 
-      showArchived ? item.is_archived === true : (item.is_archived !== true)
-    )
-    
-    // Group by theme
+  const renderRoadmap = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-bold">Roadmap</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { 
+              setEditingRoadmapItem(null)
+              setModalNotes('')
+              setModalSteps([])
+              setNewStepTitle('')
+              setAttachmentLinkInput(null)
+              setIsRoadmapItemModalOpen(true)
+            }}
+            className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 font-bold shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[20px]">add</span>
+            Nieuw Item
+          </button>
+        </div>
+      </div>
+
+      {renderThemesView()}
+    </div>
+  )
+
+  const renderThemesView = () => {
     const themes = roadmapThemes.length > 0 ? roadmapThemes : DEFAULT_THEMES
     const sortedThemes = [...themes].sort((a, b) => (a.order || 999) - (b.order || 999))
-    
+
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-bold">Roadmap</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowArchived(!showArchived)}
-              className={`px-4 py-2 rounded-lg border font-bold shadow-sm transition-colors ${
-                showArchived 
-                  ? 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
-                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+        {sortedThemes.map(theme => {
+          const themeItems = roadmapItems.filter(item => item.theme === theme.name)
+          const completedCount = themeItems.filter(item => item.status === 'Klaar').length
+          const progressPercentage = themeItems.length > 0
+            ? Math.round((completedCount / themeItems.length) * 100)
+            : 0
+
+          return (
+            <div
+              key={theme.id}
+              className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
             >
-              <span className="material-symbols-outlined text-[18px] align-middle mr-1">archive</span>
-              {showArchived ? 'Verberg gearchiveerde' : 'Bekijk gearchiveerde punten'}
-            </button>
-            <button
-              onClick={() => { 
-                setSelectedRoadmapItem(null)
-                setEditingRoadmapItem(null)
-                setModalNotes('')
-                setModalSteps([])
-                setNewStepTitle('')
-                setAttachmentLinkInput(null)
-                setIsRoadmapItemModalOpen(true)
-              }}
-              className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 font-bold shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[20px]">add</span>
-              Nieuw Item
-            </button>
-          </div>
-        </div>
-
-        {/* Table Layout */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-[50px_1fr_130px_130px_130px_110px_80px] gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-            <div className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">check_circle</span>
-              <span>Wave</span>
-            </div>
-            <div>Titel</div>
-            <div>Status</div>
-            <div>Thema</div>
-            <div>Toegewezen</div>
-            <div>Datum</div>
-            <div>Acties</div>
-          </div>
-
-          {/* Table Body - Grouped by Theme */}
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sortedThemes.map(theme => {
-              const themeItems = filteredItems
-                .filter(item => item.theme === theme.name)
-                .sort((a, b) => (a.order || 999) - (b.order || 999))
-              
-              if (themeItems.length === 0) return null
-
-              return (
-                <div key={theme.id} className={themeItems.some(i => i.is_archived) ? 'opacity-50' : ''}>
-                  {themeItems.map((item, idx) => {
-                    const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
-                    const isExpanded = expandedItems.has(item.id)
-                    
-                    return (
-                      <div key={item.id}>
-                        {/* Table Row */}
-                        <div 
-                          className={`grid grid-cols-[50px_1fr_130px_130px_130px_110px_80px] gap-4 p-4 items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                            item.is_archived ? 'opacity-50 line-through bg-gray-100 dark:bg-gray-900/50' : ''
-                          }`}
-                        >
-                          {/* Checkbox - Huidige Wave */}
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <label className="flex items-center gap-1.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={item.is_current_wave || false}
-                                onChange={async (e) => {
-                                  e.stopPropagation()
-                                  try {
-                                    const { error } = await supabase
-                                      .from('werkgroep_roadmap_items')
-                                      .update({ is_current_wave: e.target.checked })
-                                      .eq('id', item.id)
-                                    if (error) throw error
-                                    await loadRoadmapItems()
-                                  } catch (error) {
-                                    console.error('Error updating is_current_wave:', error)
-                                  }
-                                }}
-                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                              />
-                              <span className="text-xs text-gray-500 hidden md:inline">Wave</span>
-                            </label>
-                          </div>
-
-                          {/* Titel */}
-                          <div 
-                            className="font-semibold text-[#111418] dark:text-white truncate cursor-pointer"
-                            onClick={() => {
-                              const newExpanded = new Set(expandedItems)
-                              if (isExpanded) {
-                                newExpanded.delete(item.id)
-                              } else {
-                                newExpanded.add(item.id)
-                              }
-                              setExpandedItems(newExpanded)
-                            }}
-                          >
-                            {item.title}
-                          </div>
-
-                          {/* Status Dropdown */}
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <select
-                              value={item.status}
-                              onChange={async (e) => {
-                                const newStatus = e.target.value as RoadmapItem['status']
-                                handleUpdateRoadmapItemStatus(item.id, newStatus)
+              <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: `${theme.color}20`, color: theme.color }}
+                    >
+                      <span className="material-symbols-outlined">{theme.icon || 'folder'}</span>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-[#111418] dark:text-white">{theme.name}</h4>
+                      <div className="flex items-center gap-4 mt-1">
+                        <span className="text-xs text-gray-500">{themeItems.length} items</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Voortgang:</span>
+                          <span className="text-sm font-bold">{completedCount}/{themeItems.length}</span>
+                          <div className="w-24 bg-gray-200 dark:bg-gray-700 h-1.5 rounded-full">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ 
+                                width: `${progressPercentage}%`,
+                                backgroundColor: theme.color || '#6b7280'
                               }}
-                              className="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-bold cursor-pointer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <option value="Te doen">Te doen</option>
-                              <option value="Mee bezig">Mee bezig</option>
-                              <option value="Klaar">Klaar</option>
-                            </select>
-                          </div>
-
-                          {/* Thema Dropdown */}
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <select
-                              value={item.theme}
-                              onChange={async (e) => {
-                                const newTheme = e.target.value
-                                try {
-                                  const { error } = await supabase
-                                    .from('werkgroep_roadmap_items')
-                                    .update({ theme: newTheme, updated_at: new Date().toISOString() })
-                                    .eq('id', item.id)
-                                  if (error) throw error
-                                  await loadRoadmapItems()
-                                } catch (error) {
-                                  console.error('Error updating theme:', error)
-                                }
-                              }}
-                              className="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-bold cursor-pointer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {(roadmapThemes.length > 0 ? roadmapThemes : DEFAULT_THEMES)
-                                .sort((a, b) => (a.order || 999) - (b.order || 999))
-                                .map(t => (
-                                  <option key={t.id} value={t.name}>{t.name}</option>
-                                ))}
-                            </select>
-                          </div>
-
-                          {/* Toegewezen Dropdown */}
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <select
-                              value={item.assignee_id || 'null'}
-                              onChange={async (e) => {
-                                const newAssigneeId = e.target.value === 'null' ? null : e.target.value
-                                try {
-                                  const { error } = await supabase
-                                    .from('werkgroep_roadmap_items')
-                                    .update({ assignee_id: newAssigneeId, updated_at: new Date().toISOString() })
-                                    .eq('id', item.id)
-                                  if (error) throw error
-                                  await loadRoadmapItems()
-                                } catch (error) {
-                                  console.error('Error updating assignee:', error)
-                                }
-                              }}
-                              className="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-bold cursor-pointer"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <option value="null">Niet toegewezen</option>
-                              {TEAM_MEMBERS.map(m => (
-                                <option key={m.id} value={m.id}>{m.name}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Datum */}
-                          <div className="text-sm text-gray-600 dark:text-gray-400">
-                            {item.due_date ? new Date(item.due_date).toLocaleDateString('nl-NL') : '-'}
-                          </div>
-
-                          {/* Acties Menu */}
-                          <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                            {/* Volgorde knoppen */}
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation()
-                                await handleReorderItem(item.id, 'up')
-                              }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                              title="Omhoog"
-                              disabled={idx === 0}
-                            >
-                              <span className="material-symbols-outlined text-[16px] text-gray-600 dark:text-gray-400">arrow_upward</span>
-                            </button>
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation()
-                                await handleReorderItem(item.id, 'down')
-                              }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                              title="Omlaag"
-                              disabled={idx === themeItems.length - 1}
-                            >
-                              <span className="material-symbols-outlined text-[16px] text-gray-600 dark:text-gray-400">arrow_downward</span>
-                            </button>
-                            {/* Edit knop */}
-                            <button
-                              onClick={() => {
-                                setSelectedRoadmapItem(item)
-                                setEditingRoadmapItem(item)
-                                setModalNotes(item.notes || '')
-                                setModalSteps(item.steps || [])
-                                setNewStepTitle('')
-                                setAttachmentLinkInput(null)
-                                setIsRoadmapItemModalOpen(true)
-                              }}
-                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                              title="Bewerken"
-                            >
-                              <span className="material-symbols-outlined text-[18px] text-gray-600 dark:text-gray-400">edit</span>
-                            </button>
+                            />
                           </div>
                         </div>
-
-                        {/* Expanded Details */}
-                        {isExpanded && (
-                          <div className="px-4 pb-4 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700">
-                            {item.description && (
-                              <div className="mb-3">
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
-                              </div>
-                            )}
-                            <div className="flex gap-4 text-xs text-gray-500">
-                              {item.notes && (
-                                <div className="flex items-center gap-1">
-                                  <span className="material-symbols-outlined text-[14px]">note</span>
-                                  <span>Notities</span>
-                                </div>
-                              )}
-                              {item.steps && item.steps.length > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <span className="material-symbols-outlined text-[14px]">list</span>
-                                  <span>{item.steps.length} stappen</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    )
-                  })}
+                    </div>
+                  </div>
                 </div>
-              )
-            })}
-          </div>
-
-          {filteredItems.length === 0 && (
-            <div className="p-8 text-center text-gray-400">
-              {showArchived ? 'Geen gearchiveerde items' : 'Geen items'}
+              </div>
+              <div className="p-4 space-y-2">
+                {themeItems.length === 0 ? (
+                  <p className="text-center text-gray-400 py-4 text-sm">Geen items voor dit thema</p>
+                ) : (
+                  themeItems
+                    .sort((a, b) => {
+                      const statusOrder = { 'Te doen': 0, 'Mee bezig': 1, 'Klaar': 2 }
+                      const statusDiff = statusOrder[a.status] - statusOrder[b.status]
+                      if (statusDiff !== 0) return statusDiff
+                      return (a.order || 999) - (b.order || 999)
+                    })
+                    .map(item => renderRoadmapItem(item))
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          )
+        })}
       </div>
     )
   }
 
+  const renderRoadmapItem = (item: RoadmapItem) => {
+    const theme = roadmapThemes.find(t => t.name === item.theme) || DEFAULT_THEMES.find(t => t.name === item.theme)
+    const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
+
+    return (
+      <div
+        key={item.id}
+        onClick={() => { 
+          setSelectedTheme(item.theme)
+          setIsThemePanelOpen(true)
+        }}
+        className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-all cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <h5 className="font-bold text-[#111418] dark:text-white">{item.title}</h5>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getRoadmapStatusColor(item.status)}`}>
+                {item.status}
+              </span>
+              <span
+                className="px-2 py-0.5 rounded text-xs font-bold text-white"
+                style={{ backgroundColor: theme?.color || '#6b7280' }}
+              >
+                {item.theme}
+              </span>
+            </div>
+            {item.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{item.description}</p>
+            )}
+            <div className="flex items-center gap-3 text-xs text-gray-500">
+              {assignee && (
+                <div className="flex items-center gap-1">
+                  <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                    {assignee.name.substring(0, 2)}
+                  </div>
+                  <span>{assignee.name}</span>
+                </div>
+              )}
+              {item.due_date && (
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">event</span>
+                  {new Date(item.due_date).toLocaleDateString('nl-NL')}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={item.is_current_wave || false}
+              onChange={async (e) => {
+                e.stopPropagation()
+                try {
+                  const { error } = await supabase
+                    .from('werkgroep_roadmap_items')
+                    .update({ is_current_wave: e.target.checked })
+                    .eq('id', item.id)
+                  if (error) throw error
+                  await loadRoadmapItems()
+                } catch (error) {
+                  console.error('Error updating is_current_wave:', error)
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+              title="Onderdeel van huidige wave"
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const newStatus = item.status === 'Klaar' ? 'Te doen' : item.status === 'Te doen' ? 'Mee bezig' : 'Klaar'
+                handleUpdateRoadmapItemStatus(item.id, newStatus)
+              }}
+              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                item.status === 'Klaar'
+                  ? 'bg-green-500 border-green-500 text-white'
+                  : item.status === 'Mee bezig'
+                  ? 'bg-blue-500 border-blue-500 text-white'
+                  : 'border-gray-300 hover:border-primary'
+              }`}
+            >
+              {item.status === 'Klaar' && <span className="material-symbols-outlined text-sm font-bold">check</span>}
+              {item.status === 'Mee bezig' && <span className="material-symbols-outlined text-sm font-bold">play_arrow</span>}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderDossiers = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2375,28 +2340,6 @@ export default function Werkgroep() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50/50 dark:bg-[#111418]">
-        <div className="max-w-7xl mx-auto p-4 md:p-6 pt-16 md:pt-6">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <h2 className="text-lg font-bold text-red-800 dark:text-red-300 mb-2">Fout opgetreden</h2>
-            <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-            <button
-              onClick={() => {
-                setError(null)
-                loadAllData()
-              }}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold"
-            >
-              Probeer opnieuw
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#111418]">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8 pt-16 md:pt-6">
@@ -2413,42 +2356,10 @@ export default function Werkgroep() {
            ))}
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-           {(() => {
-             try {
-               if (activeTab === 'taken') {
-                 const result = renderTasks()
-                 return result || <div className="p-4 text-gray-500">Geen taken beschikbaar</div>
-               }
-               if (activeTab === 'accommodatie') {
-                 const result = renderAccommodations()
-                 return result || <div className="p-4 text-gray-500">Geen accommodaties beschikbaar</div>
-               }
-               if (activeTab === 'dossiers') {
-                 const result = renderDossiers()
-                 return result || <div className="p-4 text-gray-500">Geen dossiers beschikbaar</div>
-               }
-               if (activeTab === 'roadmap') {
-                 const result = renderRoadmap()
-                 return result || <div className="p-4 text-gray-500">Geen roadmap beschikbaar</div>
-               }
-               return <div className="p-4 text-gray-500">Onbekend tab</div>
-             } catch (err) {
-               console.error('Error rendering tab content:', err)
-               return (
-                 <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                   <p className="text-red-600 dark:text-red-400">
-                     Fout bij renderen: {err instanceof Error ? err.message : 'Onbekende fout'}
-                   </p>
-                   <button
-                     onClick={() => window.location.reload()}
-                     className="mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold text-sm"
-                   >
-                     Herlaad pagina
-                   </button>
-                 </div>
-               )
-             }
-           })()}
+           {activeTab === 'taken' && renderTasks()}
+           {activeTab === 'accommodatie' && renderAccommodations()}
+           {activeTab === 'dossiers' && renderDossiers()}
+           {activeTab === 'roadmap' && renderRoadmap()}
         </div>
       </div>
       {isAccModalOpen && (
@@ -2605,29 +2516,6 @@ export default function Werkgroep() {
                     </select>
                   </div>
                 </div>
-                {!editingRoadmapItem && (
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Positie (optioneel)</label>
-                    <select
-                      name="insertAfterId"
-                      className="w-full p-2 rounded-lg border bg-transparent"
-                    >
-                      <option value="">Eerste in categorie</option>
-                      {roadmapItems
-                        .filter(item => !item.is_archived)
-                        .sort((a, b) => {
-                          const themeCompare = a.theme.localeCompare(b.theme)
-                          if (themeCompare !== 0) return themeCompare
-                          return (a.order || 999) - (b.order || 999)
-                        })
-                        .map(item => (
-                          <option key={item.id} value={item.id}>
-                            {item.theme} - {item.title}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
@@ -2657,28 +2545,14 @@ export default function Werkgroep() {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Due Date</label>
-                    <input
-                      type="date"
-                      name="dueDate"
-                      defaultValue={editingRoadmapItem?.due_date}
-                      className="w-full p-2 rounded-lg border bg-transparent"
-                    />
-                  </div>
-                  <div className="flex items-center pt-6">
-                    <input
-                      type="checkbox"
-                      name="isCurrentWave"
-                      id="isCurrentWave"
-                      defaultChecked={editingRoadmapItem?.is_current_wave || false}
-                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="isCurrentWave" className="ml-2 text-sm font-bold cursor-pointer">
-                      Huidige Wave
-                    </label>
-                  </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    name="dueDate"
+                    defaultValue={editingRoadmapItem?.due_date}
+                    className="w-full p-2 rounded-lg border bg-transparent"
+                  />
                 </div>
 
                 {/* Notities Sectie */}
@@ -2987,6 +2861,308 @@ export default function Werkgroep() {
         </div>
       )}
 
+      {/* Theme Panel - Slide-out */}
+      {isThemePanelOpen && selectedTheme && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 md:z-50 transition-opacity"
+            onClick={() => setIsThemePanelOpen(false)}
+          />
+          
+          {/* Panel - Desktop: right side, Mobile: bottom */}
+          <div className={`
+            fixed z-50 bg-white dark:bg-gray-800 shadow-2xl
+            md:w-[600px] md:right-0 md:top-0 md:h-full md:rounded-l-2xl
+            w-full h-[85vh] bottom-0 rounded-t-2xl
+            flex flex-col
+            transition-transform duration-300 ease-out
+            ${isThemePanelOpen ? 'translate-x-0 translate-y-0' : 'md:translate-x-full translate-y-full'}
+          `}>
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-[#111418] dark:text-white">{selectedTheme}</h2>
+                <p className="text-sm text-gray-500 mt-1">Thema overzicht</p>
+              </div>
+              <button
+                onClick={() => setIsThemePanelOpen(false)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <span className="material-symbols-outlined text-gray-500">close</span>
+              </button>
+            </div>
+
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Countries Tabs */}
+              <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
+                {(['Nederland', 'België', 'Frankrijk'] as const).map(country => (
+                  <button
+                    key={country}
+                    onClick={() => setSelectedCountry(country)}
+                    className={`px-4 py-2 font-bold text-sm border-b-2 transition-colors ${
+                      selectedCountry === country
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {country}
+                  </button>
+                ))}
+              </div>
+
+              {/* Country Content - Show only selected country */}
+              <div className="space-y-6">
+                {(() => {
+                  const country = selectedCountry
+                  return (
+                  <div key={country} className="space-y-4">
+                    <h3 className="text-lg font-bold text-[#111418] dark:text-white">{country}</h3>
+                    
+                    {/* Notities */}
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                      <h4 className="font-bold text-sm text-gray-500 uppercase mb-2">Notities</h4>
+                      <textarea
+                        value={themeNotes[selectedTheme]?.[country]?.content || ''}
+                        onChange={async (e) => {
+                          // Save theme note
+                          const note = themeNotes[selectedTheme]?.[country]
+                          if (note) {
+                            const { error } = await supabase
+                              .from('werkgroep_theme_notes')
+                              .update({ content: e.target.value, updated_at: new Date().toISOString() })
+                              .eq('id', note.id)
+                            if (!error) {
+                              setThemeNotes(prev => ({
+                                ...prev,
+                                [selectedTheme]: {
+                                  ...(prev[selectedTheme] || {}),
+                                  [country]: { ...note, content: e.target.value }
+                                }
+                              }))
+                            }
+                          } else {
+                            const { data, error } = await supabase
+                              .from('werkgroep_theme_notes')
+                              .insert({ theme: selectedTheme, country, content: e.target.value })
+                              .select()
+                              .single()
+                            if (!error && data) {
+                              setThemeNotes(prev => ({
+                                ...prev,
+                                [selectedTheme]: {
+                                  ...(prev[selectedTheme] || {}),
+                                  [country]: {
+                                    id: data.id,
+                                    theme: data.theme,
+                                    country: data.country,
+                                    content: data.content,
+                                    created_at: data.created_at,
+                                    updated_at: data.updated_at,
+                                  }
+                                }
+                              }))
+                            }
+                          }
+                        }}
+                        placeholder="Notities voor dit thema in dit land..."
+                        className="w-full p-3 rounded-lg border bg-white dark:bg-gray-800 focus:ring-2 focus:ring-primary outline-none resize-none"
+                        rows={4}
+                      />
+                    </div>
+
+                    {/* Bijdragen */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-sm text-gray-500 uppercase">Bijdragen</h4>
+                        <button
+                          onClick={async () => {
+                            const content = prompt('Wat heb je gedaan?')
+                            if (content) {
+                              const { data, error } = await supabase
+                                .from('werkgroep_theme_contributions')
+                                .insert({ theme: selectedTheme, country, content })
+                                .select()
+                                .single()
+                              if (!error && data) {
+                                setThemeContributions(prev => ({
+                                  ...prev,
+                                  [selectedTheme]: {
+                                    ...(prev[selectedTheme] || {}),
+                                    [country]: [
+                                      ...(prev[selectedTheme]?.[country] || []),
+                                      {
+                                        id: data.id,
+                                        theme: data.theme,
+                                        country: data.country,
+                                        content: data.content,
+                                        author_id: data.author_id || null,
+                                        created_at: data.created_at,
+                                      }
+                                    ]
+                                  }
+                                }))
+                                await loadThemeData()
+                              }
+                            }
+                          }}
+                          className="text-sm text-primary font-bold hover:underline"
+                        >
+                          + Bijdrage toevoegen
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {(themeContributions[selectedTheme]?.[country] || []).map(contrib => (
+                          <div key={contrib.id} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                            <p className="text-sm text-[#111418] dark:text-white">{contrib.content}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {contrib.created_at && new Date(contrib.created_at).toLocaleDateString('nl-NL')}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Bijlagen */}
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-sm text-gray-500 uppercase">Bijlagen</h4>
+                      <div className="space-y-2">
+                        {(themeAttachments[selectedTheme]?.[country] || []).map(att => (
+                          <div key={att.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                              {att.name}
+                            </a>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Bijlage verwijderen?')) {
+                                  const { error } = await supabase
+                                    .from('werkgroep_theme_attachments')
+                                    .delete()
+                                    .eq('id', att.id)
+                                  if (!error) {
+                                    await loadThemeData()
+                                  }
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            id={`link-name-${country}`}
+                            placeholder="Link naam"
+                            className="flex-1 p-2 rounded-lg border bg-white dark:bg-gray-800 text-sm"
+                          />
+                          <input
+                            type="url"
+                            id={`link-url-${country}`}
+                            placeholder="URL"
+                            className="flex-1 p-2 rounded-lg border bg-white dark:bg-gray-800 text-sm"
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter') {
+                                const nameInput = document.getElementById(`link-name-${country}`) as HTMLInputElement
+                                const urlInput = e.currentTarget
+                                const name = nameInput.value.trim()
+                                const url = urlInput.value.trim()
+                                if (name && url) {
+                                  const { error } = await supabase
+                                    .from('werkgroep_theme_attachments')
+                                    .insert({ theme: selectedTheme, country, name, type: 'link', url })
+                                  if (!error) {
+                                    nameInput.value = ''
+                                    urlInput.value = ''
+                                    await loadThemeData()
+                                  }
+                                }
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={async () => {
+                              const nameInput = document.getElementById(`link-name-${country}`) as HTMLInputElement
+                              const urlInput = document.getElementById(`link-url-${country}`) as HTMLInputElement
+                              const name = nameInput.value.trim()
+                              const url = urlInput.value.trim()
+                              if (name && url) {
+                                const { error } = await supabase
+                                  .from('werkgroep_theme_attachments')
+                                  .insert({ theme: selectedTheme, country, name, type: 'link', url })
+                                if (!error) {
+                                  nameInput.value = ''
+                                  urlInput.value = ''
+                                  await loadThemeData()
+                                }
+                              }
+                            }}
+                            className="px-3 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90"
+                          >
+                            Toevoegen
+                          </button>
+                        </div>
+                        <input
+                          type="file"
+                          id={`file-upload-${country}`}
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const fileExt = file.name.split('.').pop()
+                              const fileName = `${Math.random()}.${fileExt}`
+                              const filePath = `theme-attachments/${selectedTheme}/${country}/${fileName}`
+                              
+                              const { error: uploadError } = await supabase.storage
+                                .from('werkgroep-files')
+                                .upload(filePath, file)
+                              
+                              if (!uploadError) {
+                                const { data } = supabase.storage
+                                  .from('werkgroep-files')
+                                  .getPublicUrl(filePath)
+                                
+                                const { error } = await supabase
+                                  .from('werkgroep_theme_attachments')
+                                  .insert({ 
+                                    theme: selectedTheme, 
+                                    country, 
+                                    name: file.name, 
+                                    type: 'file', 
+                                    url: data.publicUrl,
+                                    size: file.size
+                                  })
+                                if (!error) {
+                                  await loadThemeData()
+                                }
+                              }
+                              e.target.value = ''
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            document.getElementById(`file-upload-${country}`)?.click()
+                          }}
+                          className="w-full px-3 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 hover:border-primary hover:text-primary transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm align-middle mr-1">upload_file</span>
+                          Bestand uploaden
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+                })()}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
