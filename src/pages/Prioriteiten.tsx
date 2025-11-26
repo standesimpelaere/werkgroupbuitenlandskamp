@@ -30,19 +30,21 @@ export default function Prioriteiten() {
   const [activeTab, setActiveTab] = useState<'todo' | 'overview'>('todo')
 
   useEffect(() => {
-    loadPriorityItems()
+    loadPriorityItems(true)
     
     // Refresh every 5 seconds to sync with database changes
     const interval = setInterval(() => {
-      loadPriorityItems()
+      loadPriorityItems(false)
     }, 5000)
     
     return () => clearInterval(interval)
   }, [])
 
-  const loadPriorityItems = async () => {
+  const loadPriorityItems = async (showLoading: boolean = true) => {
     try {
-      setLoading(true)
+      if (showLoading) {
+        setLoading(true)
+      }
       
       // Get items that are in current wave
       const { data: currentWaveData, error: currentWaveError } = await supabase
@@ -77,7 +79,9 @@ export default function Prioriteiten() {
         // Filter out excluded items (but keep busmaatschappij and administratie items)
         const excludedTitles = [
           'menu samenstellen',
-          'gedetailleerde activiteitendagboek'
+          'gedetailleerde activiteitendagboek',
+          'medische fiches verzamelen',
+          'medischefiches verzamelen'
         ]
         
         const priorityItems: PriorityItem[] = allData
@@ -130,11 +134,15 @@ export default function Prioriteiten() {
             updated_at: item.updated_at,
           }))
         setItems(priorityItems)
+      } else {
+        setItems([])
       }
     } catch (error) {
       console.error('Error loading priority items:', error)
     } finally {
-      setLoading(false)
+      if (showLoading) {
+        setLoading(false)
+      }
     }
   }
 
