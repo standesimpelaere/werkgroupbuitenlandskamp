@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buitenlands Kamp 2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.2em;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .map-visual {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 40px;
+            margin: 20px 0;
+            position: relative;
+            min-height: 400px;
+        }
+        
+        .route-line {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 60px 20px;
+        }
+        
+        .location-pin {
+            position: relative;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .pin-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+            border: 4px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .pin-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .pin-days {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .connection-line {
+            position: absolute;
+            height: 4px;
+            background: #667eea;
+            top: 30px;
+            left: 0;
+            right: 0;
+            z-index: -1;
+        }
+        
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .location-group {
+            margin-bottom: 40px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .location-header {
+            padding: 20px;
+            color: white;
+            font-size: 1.4em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .neurenberg { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
+        .bratislava { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); }
+        .frymburk { background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); }
+        
+        .timeline-item {
+            display: flex;
+            margin: 0;
+            position: relative;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.3s;
+        }
+        
+        .timeline-item:hover {
+            background: #f8f9ff;
+        }
+        
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+        
+        .timeline-date {
+            min-width: 100px;
+            font-weight: bold;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+        
+        .day-number {
+            font-size: 1.8em;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-content {
+            flex: 1;
+            padding: 20px;
+            border-left: 3px solid #e0e0e0;
+        }
+        
+        .timeline-content h3 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        .timeline-content ul {
+            list-style-position: inside;
+            color: #555;
+            margin-top: 10px;
+        }
+        
+        .timeline-content li {
+            margin: 5px 0;
+            padding-left: 10px;
+        }
+        
+        .travel-day {
+            background: #fff3e0 !important;
+        }
+        
+        .travel-icon {
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .day-schedule {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .schedule-time {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 15px;
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .schedule-time:last-child {
+            border-bottom: none;
+        }
+        
+        .time {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .activity {
+            color: #555;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .camping-info {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .camping-info h4 {
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+        
+        .camping-info p {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .price {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            display: inline-block;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 8px 0;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        .arrow {
+            font-size: 2em;
+            color: #667eea;
+            margin: 0 -20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏕️ Buitenlands Kamp 2026</h1>
+            <p class="subtitle">Slowakije - Wenen - Tsjechië</p>
+            <p style="margin-top: 10px; color: #888;">Werkgroep: Louis, Michiel, Tim, Douwe, Victor & Stan</p>
+        </div>
+        
+        <div class="card">
+            <h2>🗺️ Complete Route Overzicht</h2>
+            <div class="map-visual">
+                <div class="route-line">
+                    <div class="connection-line"></div>
+                    
+                    <div class="location-pin">
+                        <div class="pin-circle" style="background: #4caf50;">🏠</div>
+                        <div class="pin-name">Torhout</div>
+                        <div class="pin-days">Start & Finish</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="location-pin">
+                        <div class="pin-circle" style="background: #ff9800;">🏛️</div>
+                        <div class="pin-name">Neurenberg</div>
+                        <div class="pin-days">Day 1-2</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="location-pin">
+                        <div class="pin-circle" style="background: #2196f3;">🏰</div>
+                        <div class="pin-name">Bratislava</div>
+                        <div class="pin-days">Day 3-7</div>
+                    </div>
+                    
+                    <div class="arrow">↔️</div>
+                    
+                    <div class="location-pin">
+                        <div class="pin-circle" style="background: #9c27b0;">🎭</div>
+                        <div class="pin-name">Wenen</div>
+                        <div class="pin-days">Day 7 (trip)</div>
+                    </div>
+                </div>
+                
+                <div class="route-line" style="margin-top: 20px;">
+                    <div class="connection-line"></div>
+                    
+                    <div class="location-pin">
+                        <div class="pin-circle" style="background: #2196f3;">🏰</div>
+                        <div class="pin-name">Bratislava</div>
+                        <div class="pin-days"></div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="location-pin">
+                        <div class="pin-circle" style="background: #4caf50;">🌊</div>
+                        <div class="pin-name">Frymburk</div>
+                        <div class="pin-days">Day 8-10</div>
+                    </div>
+                    
+                    <div class="arrow">→</div>
+                    
+                    <div class="location-pin">
+                        <div class="pin-circle" style="background: #4caf50;">🏠</div>
+                        <div class="pin-name">Torhout</div>
+                        <div class="pin-days">Day 11</div>
+                    </div>
+                </div>
+                
+                <div class="legend">
+                    <strong>Legenda:</strong>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4caf50;"></div>
+                        <span>Start/Finish: Torhout</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ff9800;"></div>
+                        <span>Neurenberg (Day 1-2)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2196f3;"></div>
+                        <span>Bratislava (Day 3-7)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #9c27b0;"></div>
+                        <span>Wenen (Dagtrip Day 7)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4caf50;"></div>
+                        <span>Frymburk (Day 8-10)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📅 Gedetailleerde Planning</h2>
+            
+            <div class="tab-container">
+                <button class="tab active" onclick="showTab('timeline')">Timeline Overzicht</button>
+                <button class="tab" onclick="showTab('dag1')">Day 1 Detail</button>
+                <button class="tab" onclick="showTab('campings')">Camping Info</button>
+            </div>
+            
+            <div id="timeline" class="tab-content active">
+                <div class="timeline">
+                    <!-- NEURENBERG GROUP -->
+                    <div class="location-group">
+                        <div class="location-header neurenberg">
+                            🏛️ Neurenberg (Duitsland)
+                        </div>
+                        
+                        <div class="timeline-item travel-day">
+                            <div class="timeline-date" style="color: #ff9800;">
+                                <span class="day-number">Day 1</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3><span class="travel-icon">🚌</span>Torhout → Neurenberg</h3>
+                                <ul>
+                                    <li>06:00 - Vertrek Torhout</li>
+                                    <li>12:00 - Middagmaal onderweg</li>
+                                    <li>14:00 - Aankomst Neurenberg</li>
+                                    <li>15:00 - Installeren camping</li>
+                                    <li>19:00 - Avondactiviteit</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-date" style="color: #ff9800;">
+                                <span class="day-number">Day 2</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3>🏛️ Neurenberg Verkennen</h3>
+                                <ul>
+                                    <li>Dag doorbrengen in Neurenberg</li>
+                                    <li>Avond: Vertrek richting Bratislava (nachtrit)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- BRATISLAVA GROUP -->
+                    <div class="location-group">
+                        <div class="location-header bratislava">
+                            🏰 Bratislava (Slowakije)
+                        </div>
+                        
+                        <div class="timeline-item travel-day">
+                            <div class="timeline-date" style="color: #2196f3;">
+                                <span class="day-number">Day 3</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3><span class="travel-icon">🚌</span>Neurenberg → Bratislava (Nachtrit)</h3>
+                                <ul>
+                                    <li>Ochtend: Aankomst na nachtrit</li>
+                                    <li>Bratislava stad bezoeken</li>
+                                    <li>Installeren op camping</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-date" style="color: #2196f3;">
+                                <span class="day-number">Day 4</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3>🥾 Dagtocht 1</h3>
+                                <ul>
+                                    <li>Activiteiten rond Bratislava</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-date" style="color: #2196f3;">
+                                <span class="day-number">Day 5</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3>🥾 Dagtocht 2</h3>
+                                <ul>
+                                    <li>Activiteiten rond Bratislava</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-date" style="color: #2196f3;">
+                                <span class="day-number">Day 6</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3>🥾 Dagtocht 3</h3>
+                                <ul>
+                                    <li>Activiteiten rond Bratislava</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-date" style="color: #2196f3;">
+                                <span class="day-number">Day 7</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3>🎭 Dagtrip naar Wenen</h3>
+                                <ul>
+                                    <li>Vroeg vertrek vanuit Bratislava</li>
+                                    <li>Hele dag in Wenen</li>
+                                    <li>Laat terug naar camping Bratislava</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- FRYMBURK GROUP -->
+                    <div class="location-group">
+                        <div class="location-header frymburk">
+                            🌊 Frymburk (Tsjechië)
+                        </div>
+                        
+                        <div class="timeline-item travel-day">
+                            <div class="timeline-date" style="color: #4caf50;">
+                                <span class="day-number">Day 8</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3><span class="travel-icon">🚌</span>Bratislava → Frymburk</h3>
+                                <ul>
+                                    <li>09:30-10:00 - Vertrek</li>
+                                    <li>Middag: Aankomst Frymburk</li>
+                                    <li>Chillen aan het meer</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-date" style="color: #4caf50;">
+                                <span class="day-number">Day 9</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3>🛶 Speciale Activiteit</h3>
+                                <ul>
+                                    <li>Kayakken</li>
+                                    <li>Mountainbiken</li>
+                                    <li>Pedalo</li>
+                                    <li>Watersporten</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item travel-day">
+                            <div class="timeline-date" style="color: #4caf50;">
+                                <span class="day-number">Day 10</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3><span class="travel-icon">🚌</span>Frymburk → Torhout (Nachtrit)</h3>
+                                <ul>
+                                    <li>Laatste activiteiten</li>
+                                    <li>Avond: Vertrek richting België</li>
+                                    <li>⚠️ 2 chauffeurs nodig</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-date" style="color: #4caf50;">
+                                <span class="day-number">Day 11</span>
+                            </div>
+                            <div class="timeline-content">
+                                <h3>🏠 Aankomst Torhout</h3>
+                                <ul>
+                                    <li>Ochtend: Aankomst thuis</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="dag1" class="tab-content">
+                <h3>Day 1 - Gedetailleerd Schema</h3>
+                <div class="day-schedule">
+                    <div class="schedule-time">
+                        <div class="time">06:00 - 07:00</div>
+                        <div class="activity"><span class="highlight">Vertrek Torhout</span></div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">07:00 - 12:00</div>
+                        <div class="activity">Busrit</div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">12:00 - 13:00</div>
+                        <div class="activity"><span class="highlight">Middagmaal</span></div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">13:00 - 14:00</div>
+                        <div class="activity">Busrit</div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">14:00 - 15:00</div>
+                        <div class="activity"><span class="highlight">Aankomst Neurenberg</span></div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">15:00 - 16:00</div>
+                        <div class="activity">Installeren camping</div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">16:00 - 17:00</div>
+                        <div class="activity">PlafE rust</div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">18:00 - 19:00</div>
+                        <div class="activity"><span class="highlight">Avondmaal</span></div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">19:00 - 22:00</div>
+                        <div class="activity">Avondactiviteit</div>
+                    </div>
+                    <div class="schedule-time">
+                        <div class="time">22:00+</div>
+                        <div class="activity"><span class="highlight">Slapen</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="campings" class="tab-content">
+                <h3>Camping Informatie & Accommodaties</h3>
+                
+                <div class="camping-info">
+                    <h4>📍 Neurenberg (Day 1-2)</h4>
+                    <p><strong>Verantwoordelijke:</strong> Douwe</p>
+                    <p><em>Details nog te bepalen</em></p>
+                </div>
+                
+                <div class="camping-info">
+                    <h4>📍 Bratislava (Day 3-7)</h4>
+                    <p><strong>Optie 1: Camping Zlate Piesky</strong></p>
+                    <p>📧 Adres: Zlaté Piesky 4370/8, 82104 Bratislava</p>
+                    <p>⚠️ Status: Momenteel niet boekbaar</p>
+                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #ccc;">
+                    <p><strong>Optie 2: Huntrycamp</strong></p>
+                    <p>🌐 Website: <a href="https://www.huntrycamp.sk/" target="_blank">huntrycamp.sk</a></p>
+                    <p class="price">💰 €10/nacht (onder 15 jaar)</p>
+                    <p class="price">💰 €19,50/nacht (volwassenen)</p>
+                </div>
+                
+                <div class="camping-info">
+                    <h4>📍 Frymburk (Day 8-10)</h4>
+                    <p><strong>Optie 1: Camping Olšina</strong> ✅ (Antwoord ontvangen)</p>
+                    <p>📧 Adres: 382 23 Černá v Pošumaví, Česká Republika</p>
+                    <p>🌐 Website: <a href="https://www.campingolsina.cz/kontakt.php" target="_blank">campingolsina.cz</a></p>
+                    <p class="price">💰 ~€11/nacht</p>
+                    <hr style="margin: 10px 0; border: none; border-top: 1px solid #ccc;">
+                    <p><strong>Optie 2: Camp Vresna</strong> ⭐ (VOORKEUR)</p>
+                    <p>📧 Adres: Frymburk 43, 382 79 Frymburk</p>
+                    <p>🌐 Website: <a href="https://camp-lipno.cz/cenik/" target="_blank">camp-lipno.cz</a></p>
+                    <p class="price">💰 ~€4/nacht</p>
+                    <p>✅ Moderne website</p>
+                    <p>⚠️ Slechts 60 kampeerplekken - <strong>Snel contacteren!</strong></p>
+                    <p>📧 Contact: 58iamp@seznam.cz</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

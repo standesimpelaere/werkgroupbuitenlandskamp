@@ -47,7 +47,8 @@ INSERT INTO werkgroep_roadmap_themes (name, icon, color, "order") VALUES
   ('Voeding', 'restaurant', '#ef4444', 4),
   ('Administratie', 'description', '#8b5cf6', 5),
   ('Communicatie', 'chat', '#06b6d4', 6),
-  ('Algemeen', 'folder', '#6b7280', 7)
+  ('Financiën', 'payments', '#ec4899', 7),
+  ('Algemeen', 'folder', '#6b7280', 8)
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert default waves
@@ -112,7 +113,8 @@ INSERT INTO werkgroep_roadmap_themes (name, icon, color, "order") VALUES
   ('Voeding', 'restaurant', '#ef4444', 4),
   ('Administratie', 'description', '#8b5cf6', 5),
   ('Communicatie', 'chat', '#06b6d4', 6),
-  ('Algemeen', 'folder', '#6b7280', 7)
+  ('Financiën', 'payments', '#ec4899', 7),
+  ('Algemeen', 'folder', '#6b7280', 8)
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert default waves
@@ -129,5 +131,37 @@ CREATE INDEX IF NOT EXISTS idx_roadmap_items_theme ON werkgroep_roadmap_items(th
 CREATE INDEX IF NOT EXISTS idx_roadmap_items_task_id ON werkgroep_roadmap_items(task_id);
 CREATE INDEX IF NOT EXISTS idx_roadmap_waves_order ON werkgroep_roadmap_waves("order");
 
-
+-- Add new columns if they don't exist (for existing databases)
+DO $$ 
+BEGIN
+  -- Add is_current_wave column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'werkgroep_roadmap_items' AND column_name = 'is_current_wave') THEN
+    ALTER TABLE werkgroep_roadmap_items ADD COLUMN is_current_wave BOOLEAN DEFAULT FALSE;
+  END IF;
+  
+  -- Add is_archived column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'werkgroep_roadmap_items' AND column_name = 'is_archived') THEN
+    ALTER TABLE werkgroep_roadmap_items ADD COLUMN is_archived BOOLEAN DEFAULT FALSE;
+  END IF;
+  
+  -- Add notes column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'werkgroep_roadmap_items' AND column_name = 'notes') THEN
+    ALTER TABLE werkgroep_roadmap_items ADD COLUMN notes TEXT;
+  END IF;
+  
+  -- Add steps column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'werkgroep_roadmap_items' AND column_name = 'steps') THEN
+    ALTER TABLE werkgroep_roadmap_items ADD COLUMN steps JSONB;
+  END IF;
+  
+  -- Add country column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'werkgroep_roadmap_items' AND column_name = 'country') THEN
+    ALTER TABLE werkgroep_roadmap_items ADD COLUMN country TEXT CHECK (country IN ('Nederland', 'België', 'Frankrijk'));
+  END IF;
+END $$;
 

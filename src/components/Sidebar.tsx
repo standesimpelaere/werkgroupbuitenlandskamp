@@ -14,10 +14,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const navItems = [
     { path: '/', icon: 'dashboard', label: 'Dashboard' },
+    { path: '/prioriteiten', icon: 'priority_high', label: "Huidige Priority's uit Vergadering" },
     { path: '/kosten', icon: 'receipt_long', label: 'Kosten' },
+    { path: '/werkgroep', icon: 'group', label: 'Werkgroep' },
     { path: '/planning', icon: 'event', label: 'Planning' },
     { path: '/gastjes', icon: 'groups', label: 'Gastjes' },
-    { path: '/werkgroep', icon: 'group', label: 'Werkgroep' },
     { path: '/formules', icon: 'functions', label: 'Formules' },
   ]
 

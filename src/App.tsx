@@ -6,6 +6,7 @@ import Planning from './pages/Planning'
 import Werkgroep from './pages/Werkgroep'
 import Gastjes from './pages/Gastjes'
 import Formulas from './pages/Formulas'
+import Prioriteiten from './pages/Prioriteiten'
 import { VersionProvider } from './context/VersionContext'
 import VersionSelector from './components/VersionSelector'
 
@@ -23,6 +24,7 @@ function App() {
                 <Route path="/gastjes" element={<Gastjes />} />
                 <Route path="/werkgroep" element={<Werkgroep />} />
                 <Route path="/formules" element={<Formulas />} />
+                <Route path="/prioriteiten" element={<Prioriteiten />} />
               </Routes>
             </Layout>
           </div>

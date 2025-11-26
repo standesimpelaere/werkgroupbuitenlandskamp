@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 // --- TYPES & INTERFACES ---
@@ -94,6 +95,7 @@ interface RoadmapItem {
   steps?: RoadmapStep[]
   country?: 'Nederland' | 'België' | 'Frankrijk' | null
   is_current_wave?: boolean
+  is_archived?: boolean
   created_at?: string
   updated_at?: string
 }
@@ -208,7 +210,8 @@ const DEFAULT_THEMES: RoadmapTheme[] = [
   { id: 'voeding', name: 'Voeding', icon: 'restaurant', color: '#ef4444', order: 4 },
   { id: 'administratie', name: 'Administratie', icon: 'description', color: '#8b5cf6', order: 5 },
   { id: 'communicatie', name: 'Communicatie', icon: 'chat', color: '#06b6d4', order: 6 },
-  { id: 'algemeen', name: 'Algemeen', icon: 'folder', color: '#6b7280', order: 7 },
+  { id: 'financien', name: 'Financiën', icon: 'payments', color: '#ec4899', order: 7 },
+  { id: 'algemeen', name: 'Algemeen', icon: 'folder', color: '#6b7280', order: 8 },
 ]
 
 // Standaard Waves (seed data)
@@ -236,7 +239,13 @@ const INITIAL_ACCOMMODATIONS: AccommodationLocation[] = [
 // --- COMPONENTS ---
 
 export default function Werkgroep() {
-  const [activeTab, setActiveTab] = useState<Tab>('taken')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const tabParam = searchParams.get('tab')
+    return (tabParam === 'roadmap' || tabParam === 'taken' || tabParam === 'accommodatie' || tabParam === 'dossiers') 
+      ? tabParam as Tab 
+      : 'roadmap'
+  })
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [loading, setLoading] = useState(true)
@@ -280,11 +289,41 @@ export default function Werkgroep() {
   const [newStepTitle, setNewStepTitle] = useState('')
   const [attachmentLinkInput, setAttachmentLinkInput] = useState<{ name: string; url: string } | null>(null)
   const roadmapAttachmentFileInputRef = useRef<HTMLInputElement>(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const [draggedItem, setDraggedItem] = useState<RoadmapItem | null>(null)
+  const [modalIsCurrentWave, setModalIsCurrentWave] = useState(false)
+  const [reorderMode, setReorderMode] = useState<Record<string, boolean>>({})
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   // Load data from database
   useEffect(() => {
     loadAllData()
   }, [])
+
+  // Handle query parameters for linking to specific items
+  useEffect(() => {
+    const itemId = searchParams.get('itemId')
+    const tabParam = searchParams.get('tab')
+    
+    if (tabParam === 'roadmap') {
+      setActiveTab('roadmap')
+    }
+    
+    if (itemId && roadmapItems.length > 0) {
+      const item = roadmapItems.find(i => i.id === itemId)
+      if (item) {
+        // Open the item modal
+        setEditingRoadmapItem(item)
+        setModalNotes(item.notes || '')
+        setModalSteps(item.steps || [])
+        setNewStepTitle('')
+        setAttachmentLinkInput(null)
+        setIsRoadmapItemModalOpen(true)
+        // Clean up URL
+        setSearchParams({})
+      }
+    }
+  }, [searchParams, roadmapItems, setSearchParams])
 
   const loadAllData = async () => {
     try {
@@ -601,14 +640,71 @@ export default function Werkgroep() {
     }
   }
 
+  const ensureFirstItemsInCurrentWave = async (items: RoadmapItem[]) => {
+    try {
+      // Check if any items are already marked as current wave
+      const hasCurrentWaveItems = items.some(item => item.is_current_wave === true && !item.is_archived)
+      
+      if (hasCurrentWaveItems) return // Don't auto-set if user has already set items
+      
+      // Group items by theme and get first non-archived item of each theme
+      const themeGroups: Record<string, RoadmapItem[]> = {}
+      items
+        .filter(item => !item.is_archived)
+        .forEach(item => {
+          if (!themeGroups[item.theme]) {
+            themeGroups[item.theme] = []
+          }
+          themeGroups[item.theme].push(item)
+        })
+      
+      // Sort each group by order, then by created_at
+      Object.keys(themeGroups).forEach(theme => {
+        themeGroups[theme].sort((a, b) => {
+          const orderDiff = (a.order || 999) - (b.order || 999)
+          if (orderDiff !== 0) return orderDiff
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        })
+      })
+      
+      // Mark first item of each theme as current wave
+      const itemsToUpdate: string[] = []
+      Object.keys(themeGroups).forEach(theme => {
+        const firstItem = themeGroups[theme][0]
+        if (firstItem && !firstItem.is_current_wave) {
+          itemsToUpdate.push(firstItem.id)
+        }
+      })
+      
+      if (itemsToUpdate.length > 0) {
+        await supabase
+          .from('werkgroep_roadmap_items')
+          .update({ is_current_wave: true })
+          .in('id', itemsToUpdate)
+        
+        // Reload items to reflect changes
+        await loadRoadmapItems()
+      }
+    } catch (error) {
+      console.error('Error ensuring first items in current wave:', error)
+    }
+  }
+
   const loadRoadmapItems = async () => {
     try {
       // First, replace old camping items with new location-based ones
       await replaceOldCampingItems()
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('werkgroep_roadmap_items')
         .select('*')
+      
+      // Filter out archived items unless showArchived is true
+      if (!showArchived) {
+        query = query.eq('is_archived', false)
+      }
+      
+      const { data, error } = await query
         .order('order', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false })
 
@@ -635,10 +731,14 @@ export default function Werkgroep() {
           steps: (item.steps ? (Array.isArray(item.steps) ? item.steps : JSON.parse(item.steps)) : []) as RoadmapStep[],
           country: item.country as RoadmapItem['country'] || null,
           is_current_wave: item.is_current_wave || false,
+          is_archived: item.is_archived || false,
           created_at: item.created_at,
           updated_at: item.updated_at,
         }))
         setRoadmapItems(items)
+
+        // Automatically set first item of each category to current wave if none are set
+        await ensureFirstItemsInCurrentWave(items)
 
         // Load attachments for all items
         const itemIds = items.map(i => i.id)
@@ -838,7 +938,99 @@ export default function Werkgroep() {
         },
       ]
 
-      const allItemsToInsert = [...itemsToInsert, ...generalItems]
+      // Add priority items from meeting - these should be in current wave
+      const priorityItems = [
+        {
+          title: 'Informeren per gebied alle tastbare opties: beschikbaarheid → prijs → keuze maken',
+          description: 'Per gebied (Neurenberg, Bratislava, Frymburk) alle opties onderzoeken, beschikbaarheid checken, prijzen vergelijken en keuze maken',
+          wave_id: wavesData.find(w => w.order === 1)?.id || wavesData[0]?.id,
+          theme: 'Campings',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: true,
+          order: itemsToInsert.length + 6,
+        },
+        {
+          title: 'Alternatieve verblijfplaats in de vorm van niet verblijfscommerciël gerichte locaties contacteren en zoeken',
+          description: 'Jeugdbewegingen en andere niet-commerciële locaties contacteren als alternatief voor campings',
+          wave_id: wavesData.find(w => w.order === 1)?.id || wavesData[0]?.id,
+          theme: 'Campings',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: true,
+          order: itemsToInsert.length + 7,
+        },
+        {
+          title: 'Informer prijzen en mogelijkheden',
+          description: 'Vervoersopties onderzoeken en prijzen vergelijken',
+          wave_id: wavesData.find(w => w.order === 1)?.id || wavesData[0]?.id,
+          theme: 'Vervoer',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: true,
+          order: itemsToInsert.length + 8,
+        },
+        {
+          title: 'Proberen via school',
+          description: 'Vervoer regelen via school contacten',
+          wave_id: wavesData.find(w => w.order === 1)?.id || wavesData[0]?.id,
+          theme: 'Vervoer',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: true,
+          order: itemsToInsert.length + 9,
+        },
+        {
+          title: 'Bekijken wat een acceptabele vraagprijs per gastje is',
+          description: 'Beter in te schatten na concreetheid over andere prijzen',
+          wave_id: wavesData.find(w => w.order === 1)?.id || wavesData[0]?.id,
+          theme: 'Financiën',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: true,
+          order: itemsToInsert.length + 10,
+        },
+        {
+          title: 'Beginsels van budget berekening',
+          description: 'Basisstructuur voor budget berekening opzetten',
+          wave_id: wavesData.find(w => w.order === 1)?.id || wavesData[0]?.id,
+          theme: 'Financiën',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: true,
+          order: itemsToInsert.length + 11,
+        },
+        {
+          title: 'Uitdenken betalingsplan voor ouders',
+          description: 'Bepalen hoe ouders kunnen betalen (termijnen, voorschot, etc.)',
+          wave_id: wavesData.find(w => w.order === 2)?.id || wavesData[1]?.id || wavesData[0]?.id,
+          theme: 'Financiën',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: false,
+          order: itemsToInsert.length + 12,
+        },
+        {
+          title: 'Samenstellen informatief formulier voor ouders tegen volgend semester',
+          description: 'Formulier maken met alle belangrijke informatie voor ouders',
+          wave_id: wavesData.find(w => w.order === 2)?.id || wavesData[1]?.id || wavesData[0]?.id,
+          theme: 'Administratie',
+          status: 'Te doen' as const,
+          assignee_id: null,
+          due_date: null,
+          is_current_wave: false,
+          order: itemsToInsert.length + 13,
+        },
+      ]
+
+      const allItemsToInsert = [...itemsToInsert, ...generalItems, ...priorityItems]
 
       const { error: insertError } = await supabase
         .from('werkgroep_roadmap_items')
@@ -1731,10 +1923,15 @@ export default function Werkgroep() {
     const formData = new FormData(e.currentTarget)
 
     try {
+      // Get first wave as default if no wave_id exists
+      const defaultWaveId = roadmapWaves.length > 0 
+        ? roadmapWaves.sort((a, b) => (a.order || 999) - (b.order || 999))[0].id
+        : editingRoadmapItem?.wave_id || ''
+
       const itemData = {
         title: formData.get('title') as string,
         description: (formData.get('description') as string) || null,
-        wave_id: formData.get('waveId') as string,
+        wave_id: editingRoadmapItem?.wave_id || defaultWaveId,
         theme: formData.get('theme') as string,
         status: formData.get('status') as RoadmapItem['status'],
         assignee_id: formData.get('assigneeId') === 'null' ? null : (formData.get('assigneeId') as string),
@@ -1742,6 +1939,7 @@ export default function Werkgroep() {
         notes: modalNotes || null,
         steps: modalSteps.length > 0 ? JSON.stringify(modalSteps) : null,
         order: editingRoadmapItem?.order || 0,
+        is_current_wave: modalIsCurrentWave,
         updated_at: new Date().toISOString(),
       }
 
@@ -1783,6 +1981,7 @@ export default function Werkgroep() {
       setModalSteps([])
       setNewStepTitle('')
       setAttachmentLinkInput(null)
+      setModalIsCurrentWave(false)
     } catch (error) {
       console.error('Error saving roadmap item:', error)
       alert('Fout bij opslaan van roadmap item')
@@ -1802,6 +2001,7 @@ export default function Werkgroep() {
 
       setRoadmapItems(roadmapItems.filter(item => item.id !== itemId))
       setIsRoadmapItemModalOpen(false)
+      setModalIsCurrentWave(false)
     } catch (error) {
       console.error('Error deleting roadmap item:', error)
       alert('Fout bij verwijderen van roadmap item')
@@ -1825,223 +2025,298 @@ export default function Werkgroep() {
     }
   }
 
+  const handleReorderItems = async (draggedItemId: string, targetIndex: number, theme: string) => {
+    try {
+      const themeItems = roadmapItems
+        .filter(item => item.theme === theme && !item.is_archived)
+        .sort((a, b) => {
+          const orderDiff = (a.order || 999) - (b.order || 999)
+          if (orderDiff !== 0) return orderDiff
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        })
+
+      const draggedIndex = themeItems.findIndex(item => item.id === draggedItemId)
+
+      if (draggedIndex === -1 || targetIndex < 0 || targetIndex >= themeItems.length) return
+
+      // Reorder items
+      const newItems = [...themeItems]
+      const [removed] = newItems.splice(draggedIndex, 1)
+      newItems.splice(targetIndex, 0, removed)
+
+      // Update orders
+      const updates = newItems.map((item, index) => ({
+        id: item.id,
+        order: index
+      }))
+
+      // Update all items in parallel
+      await Promise.all(
+        updates.map(update =>
+          supabase
+            .from('werkgroep_roadmap_items')
+            .update({ order: update.order, updated_at: new Date().toISOString() })
+            .eq('id', update.id)
+        )
+      )
+
+      await loadRoadmapItems()
+      setDragOverIndex(null)
+    } catch (error) {
+      console.error('Error reordering items:', error)
+    }
+  }
+
+  const handleArchiveItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase
+        .from('werkgroep_roadmap_items')
+        .update({ is_archived: true, is_current_wave: false, updated_at: new Date().toISOString() })
+        .eq('id', itemId)
+
+      if (error) throw error
+
+      // After archiving, ensure next item in category is in current wave
+      const archivedItem = roadmapItems.find(item => item.id === itemId)
+      if (archivedItem) {
+        const themeItems = roadmapItems
+          .filter(item => item.theme === archivedItem.theme && !item.is_archived && item.id !== itemId)
+          .sort((a, b) => {
+            const orderDiff = (a.order || 999) - (b.order || 999)
+            if (orderDiff !== 0) return orderDiff
+            return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+          })
+        
+        if (themeItems.length > 0 && !themeItems[0].is_current_wave) {
+          await supabase
+            .from('werkgroep_roadmap_items')
+            .update({ is_current_wave: true })
+            .eq('id', themeItems[0].id)
+        }
+      }
+
+      await loadRoadmapItems()
+    } catch (error) {
+      console.error('Error archiving item:', error)
+      alert('Fout bij archiveren van item')
+    }
+  }
+
 
   // --- RENDER ---
 
   const renderTasks = () => {
-    // Filter items by current wave, exclude completed items, and selected member
+    // Filter items by current wave (include completed items), filter by selected member, exclude archived
     let filtered = currentWaveItems
-      .filter(item => item.status !== 'Klaar')
+      .filter(item => !item.is_archived)
       .filter(item => 
         selectedMemberId ? item.assignee_id === selectedMemberId : true
       )
 
-    // Sort items
-    filtered = [...filtered].sort((a, b) => {
-      switch (sortOption) {
-        case 'persoon':
-          const aName = a.assignee_id ? TEAM_MEMBERS.find(m => m.id === a.assignee_id)?.name || '' : 'ZZZ'
-          const bName = b.assignee_id ? TEAM_MEMBERS.find(m => m.id === b.assignee_id)?.name || '' : 'ZZZ'
-          return aName.localeCompare(bName)
-        case 'status':
-          const statusOrder = { 'Te doen': 0, 'Mee bezig': 1, 'Klaar': 2 }
-          return statusOrder[a.status] - statusOrder[b.status]
-        case 'thema':
-          return a.theme.localeCompare(b.theme)
-        case 'datum':
-          if (!a.due_date && !b.due_date) return 0
-          if (!a.due_date) return 1
-          if (!b.due_date) return -1
-          return new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-        default:
-          return 0
+    // Group by theme and sort items within each theme by order
+    const groupedByTheme = filtered.reduce((acc, item) => {
+      if (!acc[item.theme]) {
+        acc[item.theme] = []
       }
+      acc[item.theme].push(item)
+      return acc
+    }, {} as Record<string, typeof filtered>)
+
+    // Sort items within each theme by order, then by created_at
+    Object.keys(groupedByTheme).forEach(theme => {
+      groupedByTheme[theme].sort((a, b) => {
+        const orderDiff = (a.order || 999) - (b.order || 999)
+        if (orderDiff !== 0) return orderDiff
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+      })
     })
+
+    // Get next items for each theme (items not in current wave, sorted by order)
+    const getNextItemForTheme = (theme: string): RoadmapItem | null => {
+      const themeItems = roadmapItems
+        .filter(item => item.theme === theme && !item.is_archived && !item.is_current_wave)
+        .sort((a, b) => {
+          const orderDiff = (a.order || 999) - (b.order || 999)
+          if (orderDiff !== 0) return orderDiff
+          return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+        })
+      return themeItems.length > 0 ? themeItems[0] : null
+    }
 
     return (
       <div className="space-y-6">
-        {/* Controls */}
-        <div className="flex justify-between items-center">
-           <div className="flex gap-2">
-             <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-               <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm text-[#111418] dark:text-white' : 'text-gray-500'}`}>
-                 <span className="material-symbols-outlined text-[18px]">list</span> Lijst
-               </button>
-               <button onClick={() => setViewMode('kanban')} className={`px-3 py-1.5 rounded-md text-sm font-bold flex items-center gap-2 ${viewMode === 'kanban' ? 'bg-white dark:bg-gray-700 shadow-sm text-[#111418] dark:text-white' : 'text-gray-500'}`}>
-                 <span className="material-symbols-outlined text-[18px]">view_column</span> Bord
-               </button>
-             </div>
-             <select 
-               value={sortOption} 
-               onChange={(e) => setSortOption(e.target.value as SortOption)}
-               className="px-3 py-1.5 rounded-lg border bg-white dark:bg-gray-800 text-sm font-bold"
-             >
-               <option value="persoon">Sorteer op: Persoon</option>
-               <option value="status">Sorteer op: Status</option>
-               <option value="thema">Sorteer op: Thema</option>
-               <option value="datum">Sorteer op: Datum</option>
-             </select>
-           </div>
-           <button onClick={() => { 
+        {/* Controls - Simplified, no view mode or sort */}
+        <div className="flex justify-end">
+          <button onClick={() => { 
             setEditingRoadmapItem(null)
             setModalNotes('')
             setModalSteps([])
             setNewStepTitle('')
             setAttachmentLinkInput(null)
+            setModalIsCurrentWave(false)
             setIsRoadmapItemModalOpen(true)
           }} className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 font-bold shadow-sm">
-             <span className="material-symbols-outlined text-[20px]">add</span> Nieuw Item
-           </button>
-        </div>
+            <span className="material-symbols-outlined text-[20px]">add</span> Nieuw Item
+          </button>
+            </div>
 
-        {/* View: Kanban */}
-        {viewMode === 'kanban' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 overflow-x-auto pb-4">
-            {['Te doen', 'Mee bezig', 'Klaar'].map(status => {
-              const colItems = filtered.filter(item => item.status === status)
+        {/* List View - Grouped by Theme */}
+        <div className="space-y-4">
+          {Object.keys(groupedByTheme).length === 0 ? (
+            <p className="text-center text-gray-400 py-8">
+              Geen items in huidige wave. Markeer items in Roadmap als "Huidige Wave".
+            </p>
+          ) : (
+            Object.entries(groupedByTheme).map(([themeName, items]) => {
+              const theme = roadmapThemes.find(t => t.name === themeName) || DEFAULT_THEMES.find(t => t.name === themeName)
+              const nextItem = getNextItemForTheme(themeName)
+              
+              // Separate completed and active items
+              const completedItems = items.filter(item => item.status === 'Klaar')
+              const activeItems = items.filter(item => item.status !== 'Klaar')
+              
               return (
-                <div key={status} className="flex flex-col gap-3 min-w-[250px]">
-                  <div className="flex justify-between items-center px-1 mb-1">
-                    <h3 className="font-bold text-sm uppercase tracking-wider text-gray-500">{status}</h3>
-                    <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold px-2 py-0.5 rounded-full">{colItems.length}</span>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    {colItems.map(item => {
-                      const theme = roadmapThemes.find(t => t.name === item.theme) || DEFAULT_THEMES.find(t => t.name === item.theme)
-                      const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
-                      return (
-                        <div 
-                          key={item.id} 
-                          onClick={() => { 
-                            setSelectedTheme(item.theme)
-                            setIsThemePanelOpen(true)
-                          }}
-                          className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <div
-                              className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: `${theme?.color || '#6b7280'}20`, color: theme?.color || '#6b7280' }}
+                <div key={themeName} className="bg-white dark:bg-background-dark rounded-xl border border-[#dbe0e6] dark:border-gray-700 overflow-hidden">
+                  <div className="flex items-stretch">
+                    {/* Main Content Section */}
+                    <div className="flex-1 flex flex-col">
+                      {/* Active items first */}
+                      {activeItems.map((item, index) => {
+                        const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={() => { 
+                              setEditingRoadmapItem(item)
+                              setModalNotes(item.notes || '')
+                              setModalSteps(item.steps || [])
+                              setNewStepTitle('')
+                              setAttachmentLinkInput(null)
+                              setIsRoadmapItemModalOpen(true)
+                            }}
+                            className={`group flex items-center gap-3 flex-1 min-w-0 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer ${
+                              index !== activeItems.length - 1 || completedItems.length > 0 ? 'border-b border-gray-200 dark:border-gray-700' : ''
+                            }`}
+                          >
+                            <select
+                              value={item.status}
+                              onChange={async (e) => {
+                                e.stopPropagation()
+                                await handleUpdateRoadmapItemStatus(item.id, e.target.value as RoadmapItem['status'])
+                                await loadRoadmapItems()
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs px-2 py-1 rounded border bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-pointer flex-shrink-0"
                             >
-                              <span className="material-symbols-outlined text-[14px]">{theme?.icon || 'folder'}</span>
+                              <option value="Te doen">Te doen</option>
+                              <option value="Mee bezig">Mee bezig</option>
+                              <option value="Klaar">Klaar</option>
+                            </select>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3">
+                                <span className={`font-semibold text-[#111418] dark:text-white truncate`}>{item.title}</span>
+                                {assignee && (
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
+                                    <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300">
+                                      {assignee.name.substring(0, 2)}
+            </div>
+                                    <span>{assignee.name}</span>
+          </div>
+                                )}
+                                {item.due_date && (
+                                  <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
+                                    <span className="material-symbols-outlined text-[14px]">event</span>
+                                    {new Date(item.due_date).toLocaleDateString('nl-NL')}
+                                  </span>
+                                )}
+          </div>
+          </div>
+                            <div className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${getRoadmapStatusColor(item.status)}`}>{item.status}</div>
+          </div>
+                        )
+                      })}
+                      
+                      {/* Completed items (grayed out) */}
+                      {completedItems.map((item, index) => {
+                        const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
+              return (
+                          <div
+                            key={item.id}
+                            className={`group flex items-center gap-3 flex-1 min-w-0 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer opacity-60 ${
+                              index !== completedItems.length - 1 || nextItem ? 'border-b border-gray-200 dark:border-gray-700' : ''
+                            }`}
+                            onClick={() => { 
+                              setEditingRoadmapItem(item)
+                              setModalNotes(item.notes || '')
+                              setModalSteps(item.steps || [])
+                              setNewStepTitle('')
+                              setAttachmentLinkInput(null)
+                              setIsRoadmapItemModalOpen(true)
+                            }}
+                          >
+                            <select
+                              value={item.status}
+                              onChange={async (e) => {
+                                e.stopPropagation()
+                                await handleUpdateRoadmapItemStatus(item.id, e.target.value as RoadmapItem['status'])
+                                await loadRoadmapItems()
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs px-2 py-1 rounded border bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-pointer flex-shrink-0 opacity-60"
+                            >
+                              <option value="Te doen">Te doen</option>
+                              <option value="Mee bezig">Mee bezig</option>
+                              <option value="Klaar">Klaar</option>
+                            </select>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3">
+                                <span className="font-semibold text-gray-400 dark:text-gray-500 truncate line-through">{item.title}</span>
+                                {assignee && (
+                                  <div className="flex items-center gap-1.5 text-xs text-gray-400 flex-shrink-0">
+                                    <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                                      {assignee.name.substring(0, 2)}
                             </div>
-                            <span className="text-[10px] font-bold text-gray-500">{theme?.name || item.theme}</span>
-                          </div>
-                          <h4 className="font-bold text-sm text-[#111418] dark:text-white mb-2 line-clamp-2">{item.title}</h4>
-                          <div className="flex justify-between items-center gap-2">
-                            {assignee ? (
-                              <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300" title={assignee.name}>
-                                {assignee.name.substring(0, 2)}
-                              </div>
-                            ) : <span></span>}
-                          </div>
+                                    <span>{assignee.name}</span>
                         </div>
-                      )
-                    })}
-                    {colItems.length === 0 && (
-                      <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center text-xs text-gray-400">Leeg</div>
                     )}
                   </div>
+                            </div>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation()
+                                await handleArchiveItem(item.id)
+                              }}
+                              className="px-3 py-1 rounded text-xs font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 flex-shrink-0"
+                            >
+                              Verplaats naar archief
+                            </button>
                 </div>
               )
             })}
+                      
+                      {/* Placeholder if no items */}
+                      {activeItems.length === 0 && completedItems.length === 0 && (
+                        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-sm text-gray-400 italic">Geen items meer in deze categorie</p>
           </div>
         )}
-
-        {/* View: List */}
-        {viewMode === 'list' && (
-          <div className="space-y-4">
-            {filtered.length === 0 ? (
-              <p className="text-center text-gray-400 py-8">
-                {currentWave ? `Geen items in ${currentWave.name}` : 'Geen actieve wave. Stel wave datums in.'}
-              </p>
-            ) : (
-              (() => {
-                // Group items by theme
-                const groupedByTheme = filtered.reduce((acc, item) => {
-                  if (!acc[item.theme]) {
-                    acc[item.theme] = []
-                  }
-                  acc[item.theme].push(item)
-                  return acc
-                }, {} as Record<string, typeof filtered>)
-
-                return Object.entries(groupedByTheme).map(([themeName, items]) => {
-                  const theme = roadmapThemes.find(t => t.name === themeName) || DEFAULT_THEMES.find(t => t.name === themeName)
-                  return (
-                    <div key={themeName} className="bg-white dark:bg-background-dark rounded-xl border border-[#dbe0e6] dark:border-gray-700 overflow-hidden">
-                      <div className="flex items-stretch">
-                        {/* Main Content Section - All items */}
-                        <div className="flex-1 flex flex-col">
-                          {items.map((item, index) => {
-                            const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
-                            return (
-                              <div
-                                key={item.id}
-                                onClick={() => { setSelectedTheme(item.theme); setIsThemePanelOpen(true); }}
-                                className={`group flex items-center gap-3 flex-1 min-w-0 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all cursor-pointer ${
-                                  index !== items.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
-                                }`}
-                              >
-                                <div 
-                                  onClick={async (e) => { 
-                                    e.stopPropagation()
-                                    const newStatus = item.status === 'Klaar' ? 'Te doen' : item.status === 'Te doen' ? 'Mee bezig' : 'Klaar'
-                                    handleUpdateRoadmapItemStatus(item.id, newStatus)
-                                  }}
-                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                                    item.status === 'Klaar'
-                                      ? 'bg-green-500 border-green-500 text-white'
-                                      : item.status === 'Mee bezig'
-                                      ? 'bg-blue-500 border-blue-500 text-white'
-                                      : 'border-gray-300 hover:border-primary'
-                                  }`}
-                                >
-                                  {item.status === 'Klaar' && <span className="material-symbols-outlined text-sm font-bold">check</span>}
-                                  {item.status === 'Mee bezig' && <span className="material-symbols-outlined text-sm font-bold">play_arrow</span>}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-3">
-                                    <span className={`font-semibold text-[#111418] dark:text-white truncate ${item.status === 'Klaar' ? 'line-through text-gray-400' : ''}`}>{item.title}</span>
-                                    {assignee && (
-                                      <div className="flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
-                                        <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300">
-                                          {assignee.name.substring(0, 2)}
-                                        </div>
-                                        <span>{assignee.name}</span>
-                                      </div>
-                                    )}
-                                    {item.due_date && (
-                                      <span className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
-                                        <span className="material-symbols-outlined text-[14px]">event</span>
-                                        {new Date(item.due_date).toLocaleDateString('nl-NL')}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${getRoadmapStatusColor(item.status)}`}>{item.status}</div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                        
-                        {/* Category Icon - Right Side */}
-                        <div className="flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-800/50 border-l border-gray-200 dark:border-gray-700 flex-shrink-0">
-                          <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: `${theme?.color || '#6b7280'}20`, color: theme?.color || '#6b7280' }}
-                          >
-                            <span className="material-symbols-outlined text-[20px]">{theme?.icon || 'folder'}</span>
-                          </div>
-                        </div>
-                      </div>
                     </div>
-                  )
-                })
-              })()
+                    
+                    {/* Category Icon - Right Side */}
+                    <div className="flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-800/50 border-l border-gray-200 dark:border-gray-700 flex-shrink-0">
+                      <div
+                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${theme?.color || '#6b7280'}20`, color: theme?.color || '#6b7280' }}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">{theme?.icon || 'folder'}</span>
+                  </div>
+                    </div>
+                    </div>
+                  </div>
+              )
+            })
             )}
           </div>
-        )}
       </div>
     )
   }
@@ -2102,12 +2377,24 @@ export default function Werkgroep() {
         <h3 className="text-lg font-bold">Roadmap</h3>
         <div className="flex gap-2">
           <button
+            onClick={() => setShowArchived(!showArchived)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-bold shadow-sm ${
+              showArchived 
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600' 
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">{showArchived ? 'visibility_off' : 'archive'}</span>
+            {showArchived ? 'Verberg gearchiveerde' : 'Bekijk gearchiveerde punten'}
+          </button>
+          <button
             onClick={() => { 
               setEditingRoadmapItem(null)
               setModalNotes('')
               setModalSteps([])
               setNewStepTitle('')
               setAttachmentLinkInput(null)
+              setModalIsCurrentWave(false)
               setIsRoadmapItemModalOpen(true)
             }}
             className="btn-primary flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 font-bold shadow-sm"
@@ -2129,7 +2416,10 @@ export default function Werkgroep() {
     return (
       <div className="space-y-6">
         {sortedThemes.map(theme => {
-          const themeItems = roadmapItems.filter(item => item.theme === theme.name)
+          const themeItems = roadmapItems.filter(item => 
+            item.theme === theme.name && 
+            (showArchived ? true : !item.is_archived)
+          )
           const completedCount = themeItems.filter(item => item.status === 'Klaar').length
           const progressPercentage = themeItems.length > 0
             ? Math.round((completedCount / themeItems.length) * 100)
@@ -2169,20 +2459,98 @@ export default function Werkgroep() {
                       </div>
                     </div>
                   </div>
+                  <button
+                    onClick={() => setReorderMode(prev => ({ ...prev, [theme.name]: !prev[theme.name] }))}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                      reorderMode[theme.name]
+                        ? 'bg-primary text-white hover:bg-primary/90'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">swap_vert</span>
+                    {reorderMode[theme.name] ? 'Verplaatsen uit' : 'Werkpunten verplaatsen'}
+                  </button>
                 </div>
               </div>
               <div className="p-4 space-y-2">
                 {themeItems.length === 0 ? (
                   <p className="text-center text-gray-400 py-4 text-sm">Geen items voor dit thema</p>
                 ) : (
-                  themeItems
-                    .sort((a, b) => {
-                      const statusOrder = { 'Te doen': 0, 'Mee bezig': 1, 'Klaar': 2 }
-                      const statusDiff = statusOrder[a.status] - statusOrder[b.status]
-                      if (statusDiff !== 0) return statusDiff
-                      return (a.order || 999) - (b.order || 999)
-                    })
-                    .map(item => renderRoadmapItem(item))
+                  (() => {
+                    const sortedItems = themeItems
+                      .sort((a, b) => {
+                        const statusOrder = { 'Te doen': 0, 'Mee bezig': 1, 'Klaar': 2 }
+                        const statusDiff = statusOrder[a.status] - statusOrder[b.status]
+                        if (statusDiff !== 0) return statusDiff
+                        return (a.order || 999) - (b.order || 999)
+                      })
+                    
+                    return (
+                      <>
+                        {sortedItems.map((item, index) => {
+                          const isDragOver = dragOverIndex === index && draggedItem?.id !== item.id && draggedItem?.theme === theme.name
+                          const draggedIndex = draggedItem ? sortedItems.findIndex(i => i.id === draggedItem.id) : -1
+                          
+                          return (
+                            <div key={item.id} className="relative">
+                              {/* Drop zone before item */}
+                              {reorderMode[theme.name] && draggedItem && draggedItem.theme === theme.name && (
+                                <div
+                                  onDragOver={(e) => {
+                                    if (draggedItem.id !== item.id) {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      setDragOverIndex(index)
+                                    }
+                                  }}
+                                  onDragLeave={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                      setDragOverIndex(null)
+                                    }
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    if (draggedItem.id !== item.id) {
+                                      const targetIndex = draggedIndex < index ? index - 1 : index
+                                      handleReorderItems(draggedItem.id, Math.max(0, targetIndex), theme.name)
+                                    }
+                                    setDragOverIndex(null)
+                                    setDraggedItem(null)
+                                  }}
+                                  className={`h-3 -mt-1 -mb-1 transition-all ${isDragOver ? 'bg-primary/30 border-t-2 border-primary border-dashed' : 'hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 hover:opacity-100'}`}
+                                />
+                              )}
+                              {renderRoadmapItem(item, theme.name, reorderMode[theme.name] || false)}
+                            </div>
+                          )
+                        })}
+                        {/* Drop zone at the end */}
+                        {reorderMode[theme.name] && draggedItem && draggedItem.theme === theme.name && (
+                          <div
+                            onDragOver={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setDragOverIndex(sortedItems.length)
+                            }}
+                            onDragLeave={(e) => {
+                              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                setDragOverIndex(null)
+                              }
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleReorderItems(draggedItem.id, sortedItems.length - 1, theme.name)
+                              setDragOverIndex(null)
+                              setDraggedItem(null)
+                            }}
+                            className={`h-3 -mt-1 transition-all ${dragOverIndex === sortedItems.length ? 'bg-primary/30 border-t-2 border-primary border-dashed' : 'hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 hover:opacity-100'}`}
+                          />
+                        )}
+                      </>
+                    )
+                  })()
                 )}
               </div>
             </div>
@@ -2192,22 +2560,85 @@ export default function Werkgroep() {
     )
   }
 
-  const renderRoadmapItem = (item: RoadmapItem) => {
+  const renderRoadmapItem = (item: RoadmapItem, themeName?: string, isReorderMode: boolean = false) => {
     const theme = roadmapThemes.find(t => t.name === item.theme) || DEFAULT_THEMES.find(t => t.name === item.theme)
     const assignee = item.assignee_id ? TEAM_MEMBERS.find(m => m.id === item.assignee_id) : null
 
     return (
       <div
         key={item.id}
-        onClick={() => { 
-          setSelectedTheme(item.theme)
-          setIsThemePanelOpen(true)
+        data-item-id={item.id}
+        draggable={isReorderMode && !item.is_archived && themeName === item.theme}
+        onDragStart={(e) => {
+          if (!isReorderMode) {
+            e.preventDefault()
+            return
+          }
+          setDraggedItem(item)
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', '') // Required for Firefox
+          if (e.currentTarget) {
+            e.currentTarget.style.opacity = '0.5'
+          }
         }}
-        className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-all cursor-pointer"
+        onDragEnd={(e) => {
+          if (e.currentTarget) {
+            e.currentTarget.style.opacity = '1'
+          }
+          setDraggedItem(null)
+          setDragOverIndex(null)
+        }}
+        onClick={() => {
+          if (isReorderMode) return // Don't open modal in reorder mode 
+          // Load item data for editing
+          setEditingRoadmapItem(item)
+          setModalNotes(item.notes || '')
+          setModalSteps(item.steps || [])
+          setNewStepTitle('')
+          setAttachmentLinkInput(null)
+          // Load attachments for this item
+          if (roadmapAttachments[item.id]) {
+            // Already loaded
+          } else {
+            // Load attachments
+            supabase
+              .from('werkgroep_roadmap_attachments')
+              .select('*')
+              .eq('item_id', item.id)
+              .then(({ data }) => {
+                if (data) {
+                  setRoadmapAttachments(prev => ({
+                    ...prev,
+                    [item.id]: data.map(att => ({
+                      id: att.id,
+                      item_id: att.item_id,
+                      name: att.name,
+                      type: att.type as 'file' | 'link',
+                      url: att.url,
+                      size: att.size || undefined,
+                      created_at: att.created_at,
+                      updated_at: att.updated_at,
+                    }))
+                  }))
+                }
+              })
+          }
+          setIsRoadmapItemModalOpen(true)
+        }}
+        className={`bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-all ${isReorderMode && !item.is_archived ? 'cursor-move' : 'cursor-pointer'} ${item.is_archived ? 'opacity-50' : ''} ${draggedItem?.id === item.id ? 'opacity-50' : ''}`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
+              {isReorderMode && !item.is_archived && themeName === item.theme && (
+                <span 
+                  className="material-symbols-outlined text-gray-400 cursor-move text-[18px]"
+                  draggable={false}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  drag_indicator
+                </span>
+              )}
               <h5 className="font-bold text-[#111418] dark:text-white">{item.title}</h5>
               <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getRoadmapStatusColor(item.status)}`}>
                 {item.status}
@@ -2218,6 +2649,11 @@ export default function Werkgroep() {
               >
                 {item.theme}
               </span>
+              {item.is_archived && (
+                <span className="px-2 py-0.5 rounded text-xs font-bold bg-gray-500 text-white">
+                  Gearchiveerd
+                </span>
+              )}
             </div>
             {item.description && (
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{item.description}</p>
@@ -2239,44 +2675,56 @@ export default function Werkgroep() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={item.is_current_wave || false}
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            {/* Check if this is the first item in theme (always checked) */}
+            {(() => {
+              const themeItems = roadmapItems
+                .filter(i => i.theme === item.theme && !i.is_archived)
+                .sort((a, b) => {
+                  const orderDiff = (a.order || 999) - (b.order || 999)
+                  if (orderDiff !== 0) return orderDiff
+                  return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()
+                })
+              const isFirstItem = themeItems.length > 0 && themeItems[0].id === item.id
+              const isChecked = isFirstItem || item.is_current_wave
+              
+              return (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    disabled={isFirstItem}
+                    onChange={async (e) => {
+                      if (isFirstItem) return // Can't uncheck first item
+                      try {
+                        const { error } = await supabase
+                          .from('werkgroep_roadmap_items')
+                          .update({ is_current_wave: e.target.checked })
+                          .eq('id', item.id)
+                        if (error) throw error
+                        await loadRoadmapItems()
+                      } catch (error) {
+                        console.error('Error updating is_current_wave:', error)
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer disabled:opacity-50"
+                  />
+                  <label className="text-xs text-gray-600 dark:text-gray-400 cursor-pointer">in huidige wave</label>
+                </div>
+              )
+            })()}
+            <select
+              value={item.status}
               onChange={async (e) => {
-                e.stopPropagation()
-                try {
-                  const { error } = await supabase
-                    .from('werkgroep_roadmap_items')
-                    .update({ is_current_wave: e.target.checked })
-                    .eq('id', item.id)
-                  if (error) throw error
-                  await loadRoadmapItems()
-                } catch (error) {
-                  console.error('Error updating is_current_wave:', error)
-                }
+                await handleUpdateRoadmapItemStatus(item.id, e.target.value as RoadmapItem['status'])
               }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-              title="Onderdeel van huidige wave"
-            />
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                const newStatus = item.status === 'Klaar' ? 'Te doen' : item.status === 'Te doen' ? 'Mee bezig' : 'Klaar'
-                handleUpdateRoadmapItemStatus(item.id, newStatus)
-              }}
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                item.status === 'Klaar'
-                  ? 'bg-green-500 border-green-500 text-white'
-                  : item.status === 'Mee bezig'
-                  ? 'bg-blue-500 border-blue-500 text-white'
-                  : 'border-gray-300 hover:border-primary'
-              }`}
+              className="text-xs px-2 py-1 rounded border bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 cursor-pointer"
+              title="Status"
             >
-              {item.status === 'Klaar' && <span className="material-symbols-outlined text-sm font-bold">check</span>}
-              {item.status === 'Mee bezig' && <span className="material-symbols-outlined text-sm font-bold">play_arrow</span>}
-            </button>
+              <option value="Te doen">Te doen</option>
+              <option value="Mee bezig">Mee bezig</option>
+              <option value="Klaar">Klaar</option>
+            </select>
           </div>
         </div>
       </div>
@@ -2356,10 +2804,10 @@ export default function Werkgroep() {
            ))}
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+           {activeTab === 'roadmap' && renderRoadmap()}
            {activeTab === 'taken' && renderTasks()}
            {activeTab === 'accommodatie' && renderAccommodations()}
            {activeTab === 'dossiers' && renderDossiers()}
-           {activeTab === 'roadmap' && renderRoadmap()}
         </div>
       </div>
       {isAccModalOpen && (
@@ -2480,24 +2928,6 @@ export default function Werkgroep() {
                 />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Wave</label>
-                    <select
-                      name="waveId"
-                      defaultValue={editingRoadmapItem?.wave_id || ''}
-                      required
-                      className="w-full p-2 rounded-lg border bg-transparent"
-                    >
-                      <option value="">-- Selecteer --</option>
-                      {roadmapWaves
-                        .sort((a, b) => (a.order || 999) - (b.order || 999))
-                        .map(wave => (
-                          <option key={wave.id} value={wave.id}>
-                            {wave.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Thema</label>
                     <select
                       name="theme"
@@ -2514,6 +2944,21 @@ export default function Werkgroep() {
                           </option>
                         ))}
                     </select>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalIsCurrentWave(!modalIsCurrentWave)
+                      }}
+                      className={`w-full px-4 py-2 rounded-lg border font-bold transition-colors ${
+                        modalIsCurrentWave
+                          ? 'bg-primary text-white border-primary hover:bg-primary/90'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {modalIsCurrentWave ? '✓ In Huidige Wave' : 'Toevoegen aan Huidige Wave'}
+                    </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -2846,6 +3291,7 @@ export default function Werkgroep() {
                       setModalSteps([])
                       setNewStepTitle('')
                       setAttachmentLinkInput(null)
+                      setModalIsCurrentWave(false)
                     }}
                     className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400"
                   >
