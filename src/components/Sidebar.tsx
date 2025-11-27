@@ -20,6 +20,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     { path: '/planning', icon: 'event', label: 'Planning' },
     { path: '/gastjes', icon: 'groups', label: 'Gastjes' },
     { path: '/formules', icon: 'functions', label: 'Formules' },
+    { path: '/verblijfzoeker', icon: 'search', label: 'Verblijfzoeker' },
   ]
 
   const isActive = (path: string) => location.pathname === path

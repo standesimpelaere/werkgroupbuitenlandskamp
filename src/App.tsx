@@ -7,6 +7,7 @@ import Werkgroep from './pages/Werkgroep'
 import Gastjes from './pages/Gastjes'
 import Formulas from './pages/Formulas'
 import Prioriteiten from './pages/Prioriteiten'
+import Verblijfzoeker from './pages/Verblijfzoeker'
 import { VersionProvider } from './context/VersionContext'
 import VersionSelector from './components/VersionSelector'
 
@@ -25,6 +26,7 @@ function App() {
                 <Route path="/werkgroep" element={<Werkgroep />} />
                 <Route path="/formules" element={<Formulas />} />
                 <Route path="/prioriteiten" element={<Prioriteiten />} />
+                <Route path="/verblijfzoeker" element={<Verblijfzoeker />} />
               </Routes>
             </Layout>
           </div>
