@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 
 // --- TYPES & INTERFACES ---
 
-type Tab = 'taken' | 'accommodatie' | 'dossiers' | 'roadmap'
+type Tab = 'taken' | 'dossiers' | 'roadmap'
 type RoadmapViewMode = 'waves' | 'themes'
 type SortOption = 'persoon' | 'status' | 'thema' | 'datum'
 
@@ -137,32 +137,6 @@ interface RoadmapTheme {
   order?: number
 }
 
-// Accommodaties
-type ContactStatus = 
-  | 'Niet gecontacteerd' 
-  | 'Contact gelegd - Geen antwoord' 
-  | 'In onderhandeling' 
-  | 'Geen mogelijkheid' 
-  | 'Geboekt'
-
-interface AccommodationOption {
-  id: string
-  name: string
-  address?: string
-  website?: string
-  price?: string
-  contactStatus: ContactStatus
-  contactPersonId?: string | null
-  notes?: string
-  isPreference: boolean
-}
-
-interface AccommodationLocation {
-  id: string
-  locationName: string
-  region?: string
-  options: AccommodationOption[]
-}
 
 // Persoonlijke Dossiers
 interface FileLink {
@@ -222,19 +196,6 @@ const DEFAULT_WAVES: Omit<RoadmapWave, 'id' | 'created_at' | 'updated_at'>[] = [
   { name: 'Wave 4', start_date: undefined, end_date: undefined, order: 4 },
 ]
 
-const INITIAL_ACCOMMODATIONS: AccommodationLocation[] = [
-  { id: 'loc-1', locationName: 'Tussenstop Duitsland', region: 'Duitsland', options: [] },
-  { id: 'loc-2', locationName: 'Bratislava', region: 'Slowakije', options: [
-      { id: 'opt-1', name: 'Camping Zlate Piesky', address: 'Zlaté Piesky 4370/8, 82104 Bratislava', contactStatus: 'Geen mogelijkheid', contactPersonId: null, notes: 'Momenteel niet boekbaar volgens website.', isPreference: false },
-      { id: 'opt-2', name: 'Huntrycamp', website: 'https://www.huntrycamp.sk/', price: '€10 kind / €19.5 volw', contactStatus: 'Niet gecontacteerd', contactPersonId: null, notes: 'Goed alternatief.', isPreference: false }
-    ]
-  },
-  { id: 'loc-3', locationName: 'Frymburk', region: 'Tsjechië', options: [
-      { id: 'opt-3', name: 'Camp Vresna', address: 'Frymburk 43, 382 79 Frymburk', website: 'https://camp-lipno.cz/cenik/', price: '~€4 p.n.', contactStatus: 'Niet gecontacteerd', contactPersonId: 'stan', notes: 'Let op: slechts 60 plekken!', isPreference: true },
-      { id: 'opt-4', name: 'Camping Olšina', address: '382 23 Černá v Pošumaví', website: 'https://www.campingolsina.cz/', price: '~€11 p.n.', contactStatus: 'Contact gelegd - Geen antwoord', contactPersonId: null, notes: 'Antwoord ontvangen in verleden, nog geen definitieve prijs.', isPreference: false }
-    ]
-  }
-]
 
 // --- COMPONENTS ---
 
@@ -253,15 +214,11 @@ export default function Werkgroep() {
 
   // Data
   const [tasks, setTasks] = useState<Task[]>([])
-  const [accommodations, setAccommodations] = useState<AccommodationLocation[]>([])
   const [memberSpaces, setMemberSpaces] = useState<Record<string, MemberSpace>>({})
 
   // Modals
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [isAccModalOpen, setIsAccModalOpen] = useState(false)
-  const [editingAccLocationId, setEditingAccLocationId] = useState<string | null>(null)
-  const [editingAccOption, setEditingAccOption] = useState<AccommodationOption | null>(null)
   const [linkInputState, setLinkInputState] = useState<{ memberId: string, name: string, url: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploadingForMemberId, setUploadingForMemberId] = useState<string | null>(null)
@@ -329,7 +286,6 @@ export default function Werkgroep() {
     try {
       setLoading(true)
       await Promise.all([
-        loadAccommodations(),
         loadMemberSpaces(),
         loadRoadmapData(),
       ])
@@ -1204,115 +1160,6 @@ export default function Werkgroep() {
     }
   }
 
-  const loadAccommodations = async () => {
-    try {
-      const { data: locations, error: locError } = await supabase
-        .from('werkgroep_accommodation_locations')
-        .select('*')
-        .order('created_at')
-
-      if (locError) throw locError
-
-      if (locations && locations.length > 0) {
-        const { data: options, error: optError } = await supabase
-          .from('werkgroep_accommodation_options')
-          .select('*')
-
-        if (optError) throw optError
-
-        const convertedLocations: AccommodationLocation[] = locations.map(loc => ({
-          id: loc.id,
-          locationName: loc.location_name,
-          region: loc.region || undefined,
-          options: (options || [])
-            .filter(opt => opt.location_id === loc.id)
-            .map(opt => ({
-              id: opt.id,
-              name: opt.name,
-              address: opt.address || undefined,
-              website: opt.website || undefined,
-              price: opt.price || undefined,
-              contactStatus: opt.contact_status as ContactStatus,
-              contactPersonId: opt.contact_person_id || null,
-              notes: opt.notes || undefined,
-              isPreference: opt.is_preference || false,
-            })),
-        }))
-        setAccommodations(convertedLocations)
-      } else {
-        // Seed initial accommodations if empty
-        await seedInitialAccommodations()
-      }
-    } catch (error) {
-      console.error('Error loading accommodations:', error)
-    }
-  }
-
-  const seedInitialAccommodations = async () => {
-    try {
-      // Double-check that table is still empty (prevent race conditions)
-      const { data: existingData, error: checkError } = await supabase
-        .from('werkgroep_accommodation_locations')
-        .select('id')
-        .limit(1)
-
-      if (checkError) throw checkError
-
-      // If data exists now, don't seed (another process may have seeded)
-      if (existingData && existingData.length > 0) {
-        await loadAccommodations()
-        return
-      }
-
-      for (const loc of INITIAL_ACCOMMODATIONS) {
-        const { data: locationData, error: locError } = await supabase
-          .from('werkgroep_accommodation_locations')
-          .insert({
-            location_name: loc.locationName,
-            region: loc.region || null,
-          })
-          .select()
-          .single()
-
-        if (locError) {
-          // If error is duplicate key, skip and reload
-          if (locError.code === '23505' || locError.message.includes('duplicate')) {
-            await loadAccommodations()
-            return
-          }
-          throw locError
-        }
-
-        if (loc.options.length > 0) {
-          const optionsToInsert = loc.options.map(opt => ({
-            location_id: locationData.id,
-            name: opt.name,
-            address: opt.address || null,
-            website: opt.website || null,
-            price: opt.price || null,
-            contact_status: opt.contactStatus,
-            contact_person_id: opt.contactPersonId || null,
-            notes: opt.notes || null,
-            is_preference: opt.isPreference,
-          }))
-
-          const { error: optError } = await supabase
-            .from('werkgroep_accommodation_options')
-            .insert(optionsToInsert)
-
-          if (optError) {
-            // If error, continue with next location
-            console.error('Error inserting options:', optError)
-          }
-        }
-      }
-      await loadAccommodations()
-    } catch (error) {
-      console.error('Error seeding accommodations:', error)
-      // Try to reload in case another process seeded
-      await loadAccommodations()
-    }
-  }
 
   const loadMemberSpaces = async () => {
     try {
@@ -1389,15 +1236,6 @@ export default function Werkgroep() {
     return theme?.icon || 'folder'
   }
 
-  const getContactStatusColor = (status: ContactStatus) => {
-    switch (status) {
-      case 'Geboekt': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
-      case 'In onderhandeling': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
-      case 'Contact gelegd - Geen antwoord': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800'
-      case 'Geen mogelijkheid': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
-      default: return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
-    }
-  }
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return ''
@@ -1560,102 +1398,6 @@ export default function Werkgroep() {
     }
   }
 
-  const handleSaveAccommodationOption = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!editingAccLocationId) return
-    const formData = new FormData(e.currentTarget)
-
-    try {
-      const optionData = {
-        location_id: editingAccLocationId,
-        name: formData.get('name') as string,
-        address: (formData.get('address') as string) || null,
-        website: (formData.get('website') as string) || null,
-        price: (formData.get('price') as string) || null,
-        contact_status: formData.get('contactStatus') as ContactStatus,
-        contact_person_id: formData.get('contactPersonId') === 'null' ? null : formData.get('contactPersonId') as string,
-        notes: (formData.get('notes') as string) || null,
-        is_preference: formData.get('isPreference') === 'on',
-        updated_at: new Date().toISOString(),
-      }
-
-      if (editingAccOption) {
-        const { error } = await supabase
-          .from('werkgroep_accommodation_options')
-          .update(optionData)
-          .eq('id', editingAccOption.id)
-
-        if (error) throw error
-
-        const updatedOption: AccommodationOption = {
-          id: editingAccOption.id,
-          name: optionData.name,
-          address: optionData.address || undefined,
-          website: optionData.website || undefined,
-          price: optionData.price || undefined,
-          contactStatus: optionData.contact_status,
-          contactPersonId: optionData.contact_person_id,
-          notes: optionData.notes || undefined,
-          isPreference: optionData.is_preference,
-        }
-        setAccommodations(prev => prev.map(loc => {
-          if (loc.id !== editingAccLocationId) return loc
-          return { ...loc, options: loc.options.map(o => o.id === editingAccOption.id ? updatedOption : o) }
-        }))
-      } else {
-        const { data, error } = await supabase
-          .from('werkgroep_accommodation_options')
-          .insert(optionData)
-          .select()
-          .single()
-
-        if (error) throw error
-
-    const newOption: AccommodationOption = {
-          id: data.id,
-          name: data.name,
-          address: data.address || undefined,
-          website: data.website || undefined,
-          price: data.price || undefined,
-          contactStatus: data.contact_status as ContactStatus,
-          contactPersonId: data.contact_person_id || null,
-          notes: data.notes || undefined,
-          isPreference: data.is_preference || false,
-    }
-    setAccommodations(prev => prev.map(loc => {
-      if (loc.id !== editingAccLocationId) return loc
-          return { ...loc, options: [...loc.options, newOption] }
-    }))
-      }
-    setIsAccModalOpen(false)
-    setEditingAccOption(null)
-    setEditingAccLocationId(null)
-    } catch (error) {
-      console.error('Error saving accommodation option:', error)
-      alert('Fout bij opslaan van accommodatie optie')
-    }
-  }
-
-  const deleteAccommodationOption = async (locationId: string, optionId: string) => {
-    if (!confirm('Ben je zeker dat je deze optie wilt verwijderen?')) return
-
-    try {
-      const { error } = await supabase
-        .from('werkgroep_accommodation_options')
-        .delete()
-        .eq('id', optionId)
-
-      if (error) throw error
-
-    setAccommodations(prev => prev.map(loc => {
-      if (loc.id !== locationId) return loc
-      return { ...loc, options: loc.options.filter(o => o.id !== optionId) }
-    }))
-    } catch (error) {
-      console.error('Error deleting accommodation option:', error)
-      alert('Fout bij verwijderen van accommodatie optie')
-    }
-  }
 
   const handleUpdateNotes = async (memberId: string, notes: string) => {
     try {
@@ -2321,54 +2063,6 @@ export default function Werkgroep() {
     )
   }
 
-  const renderAccommodations = () => (
-    <div className="space-y-8">
-      <div className="flex justify-end">
-        <button onClick={async () => { 
-          const name = prompt('Naam van nieuwe locatie:')
-          if (!name) return
-          try {
-            const { data, error } = await supabase
-              .from('werkgroep_accommodation_locations')
-              .insert({ location_name: name })
-              .select()
-              .single()
-            if (error) throw error
-            setAccommodations([...accommodations, { id: data.id, locationName: data.location_name, region: data.region || undefined, options: [] }])
-          } catch (error) {
-            console.error('Error adding location:', error)
-            alert('Fout bij toevoegen van locatie')
-          }
-        }} className="text-primary font-bold hover:underline flex items-center gap-1">
-           <span className="material-symbols-outlined">add_location</span> Locatie Toevoegen
-        </button>
-      </div>
-      {accommodations.map(loc => (
-        <div key={loc.id} className="bg-white dark:bg-background-dark rounded-xl border border-[#dbe0e6] dark:border-gray-700 overflow-hidden shadow-sm">
-           <div className="bg-gray-50 dark:bg-gray-800/50 p-4 border-b border-[#dbe0e6] dark:border-gray-700 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-[#111418] dark:text-white flex items-center gap-2"><span className="material-symbols-outlined text-primary">location_on</span> {loc.locationName}</h3>
-              <button onClick={() => { setEditingAccLocationId(loc.id); setEditingAccOption(null); setIsAccModalOpen(true); }} className="text-xs font-bold bg-white dark:bg-gray-700 border px-3 py-1.5 rounded-lg hover:bg-gray-50 shadow-sm">+ Optie</button>
-           </div>
-           <div className="p-4 grid gap-4 sm:grid-cols-2">
-              {loc.options.map(opt => (
-                 <div key={opt.id} className={`relative rounded-lg border p-4 transition-all hover:shadow-md ${opt.isPreference ? 'border-primary/50 bg-primary/5' : 'border-gray-200 dark:border-gray-700'}`}>
-                    {opt.isPreference && <div className="absolute -top-2 -right-2 bg-primary text-white p-1 rounded-full shadow-sm"><span className="material-symbols-outlined text-[14px] block">star</span></div>}
-                    <div className="flex justify-between items-start mb-2">
-                       <h4 className="font-bold text-[#111418] dark:text-white">{opt.name}</h4>
-                       <button onClick={() => { setEditingAccLocationId(loc.id); setEditingAccOption(opt); setIsAccModalOpen(true); }} className="text-gray-400 hover:text-primary"><span className="material-symbols-outlined text-[18px]">edit</span></button>
-                    </div>
-                    <div className="space-y-1 text-sm">
-                       <div className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${getContactStatusColor(opt.contactStatus)}`}>{opt.contactStatus}</div>
-                       {opt.price && <p className="text-gray-600 dark:text-gray-400 flex gap-2"><span className="material-symbols-outlined text-[14px]">payments</span> {opt.price}</p>}
-                       {opt.website && <a href={opt.website} target="_blank" className="text-primary hover:underline flex gap-2"><span className="material-symbols-outlined text-[14px]">language</span> Website</a>}
-                    </div>
-                 </div>
-              ))}
-           </div>
-        </div>
-      ))}
-    </div>
-  )
 
 
   const renderRoadmap = () => (
@@ -2792,48 +2486,23 @@ export default function Werkgroep() {
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#111418]">
       <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8 pt-16 md:pt-6">
         <div className="flex justify-between items-end border-b pb-6">
-           <div><h1 className="text-4xl font-black text-[#111418] dark:text-white tracking-tight">Werkgroep</h1><p className="text-[#617589] mt-1">Organisatiehub</p></div>
+           <div><h1 className="text-4xl font-black text-[#111418] dark:text-white tracking-tight">To-do Werkgroep</h1><p className="text-[#617589] mt-1">Organisatiehub</p></div>
            <div className="flex items-center gap-2 bg-white p-1.5 rounded-full border shadow-sm">
               <span className="text-xs font-bold text-gray-400 uppercase px-2">Filter:</span>
               <div className="flex -space-x-2">{TEAM_MEMBERS.map(m => <button key={m.id} onClick={() => setSelectedMemberId(selectedMemberId === m.id ? null : m.id)} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-transform hover:z-10 hover:scale-110 ${selectedMemberId === m.id ? 'bg-primary text-white z-20 scale-110' : 'bg-gray-200 text-gray-600'}`}>{m.name.substring(0, 2)}</button>)}</div>
            </div>
         </div>
         <div className="flex gap-6 border-b">
-           {[{ id: 'roadmap', label: 'Roadmap', icon: 'route' }, { id: 'taken', label: 'Huidige Wave', icon: 'check_circle' }, { id: 'accommodatie', label: 'Accommodaties', icon: 'camping' }, { id: 'dossiers', label: 'Dossiers', icon: 'folder_shared' }].map(tab => (
+           {[{ id: 'roadmap', label: 'Roadmap', icon: 'route' }, { id: 'taken', label: 'Huidige Wave', icon: 'check_circle' }, { id: 'dossiers', label: 'Dossiers', icon: 'folder_shared' }].map(tab => (
               <button key={tab.id} onClick={() => { setActiveTab(tab.id as Tab); }} className={`flex items-center gap-2 pb-3 px-2 text-sm font-bold border-b-2 transition-colors ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}><span className="material-symbols-outlined text-[20px]">{tab.icon}</span>{tab.label}</button>
            ))}
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
            {activeTab === 'roadmap' && renderRoadmap()}
            {activeTab === 'taken' && renderTasks()}
-           {activeTab === 'accommodatie' && renderAccommodations()}
            {activeTab === 'dossiers' && renderDossiers()}
         </div>
       </div>
-      {isAccModalOpen && (
-         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-               <form onSubmit={handleSaveAccommodationOption}>
-                  <div className="p-6 border-b flex justify-between items-center"><h3 className="text-xl font-bold">{editingAccOption ? 'Bewerken' : 'Nieuw'}</h3>{editingAccOption && editingAccLocationId && <button type="button" onClick={() => { deleteAccommodationOption(editingAccLocationId, editingAccOption.id); setIsAccModalOpen(false); }} className="text-red-500"><span className="material-symbols-outlined">delete</span></button>}</div>
-                  <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                     <div className="space-y-4">
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Naam</label><input name="name" defaultValue={editingAccOption?.name} required className="w-full p-2 rounded border" /></div>
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Adres</label><input name="address" defaultValue={editingAccOption?.address} className="w-full p-2 rounded border" /></div>
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Website</label><input name="website" defaultValue={editingAccOption?.website} className="w-full p-2 rounded border" /></div>
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Richtprijs</label><input name="price" defaultValue={editingAccOption?.price} className="w-full p-2 rounded border" /></div>
-                     </div>
-                     <div className="space-y-4">
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label><select name="contactStatus" defaultValue={editingAccOption?.contactStatus || 'Niet gecontacteerd'} className="w-full p-2 rounded border"><option value="Niet gecontacteerd">Niet gecontacteerd</option><option value="Contact gelegd - Geen antwoord">Contact gelegd - Geen antwoord</option><option value="In onderhandeling">In onderhandeling</option><option value="Geen mogelijkheid">Geen mogelijkheid</option><option value="Geboekt">Geboekt</option></select></div>
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Verantwoordelijke</label><select name="contactPersonId" defaultValue={editingAccOption?.contactPersonId || 'null'} className="w-full p-2 rounded border"><option value="null">-- Selecteer --</option>{TEAM_MEMBERS.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Notities</label><textarea name="notes" defaultValue={editingAccOption?.notes} rows={3} className="w-full p-2 rounded border" /></div>
-                        <div className="flex items-center gap-2 pt-2"><input type="checkbox" name="isPreference" id="isPreference" defaultChecked={editingAccOption?.isPreference} className="w-4 h-4" /><label htmlFor="isPreference" className="text-sm font-bold cursor-pointer">Dit is onze voorkeur</label></div>
-                     </div>
-                  </div>
-                  <div className="p-4 bg-gray-50 flex justify-end gap-2"><button type="button" onClick={() => setIsAccModalOpen(false)} className="px-4 py-2 text-sm text-gray-600">Annuleren</button><button type="submit" className="px-4 py-2 text-sm font-bold text-white bg-primary rounded-lg">Opslaan</button></div>
-               </form>
-            </div>
-         </div>
-      )}
 
 
       {/* Wave Modal */}

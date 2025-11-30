@@ -91,7 +91,7 @@ export default function Verblijfzoeker() {
 
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-[#111418]">
-      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8 pt-16 md:pt-6">
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
         {/* Page Header */}
         <div className="space-y-2">
           <p className="uppercase text-xs font-semibold tracking-[0.25em] text-primary">

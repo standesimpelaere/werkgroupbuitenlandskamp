@@ -12,15 +12,22 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [showPushConfirm, setShowPushConfirm] = useState(false)
   const [showHandleiding, setShowHandleiding] = useState(false)
 
-  const navItems = [
+  const topNavItems = [
     { path: '/', icon: 'dashboard', label: 'Dashboard' },
+    { path: '/werkgroep', icon: 'group', label: 'To-do Werkgroep' },
     { path: '/prioriteiten', icon: 'priority_high', label: "Huidige Priority's uit Vergadering" },
+    { path: '/notities', icon: 'note', label: 'Notities' },
+  ]
+
+  const mainNavItems = [
     { path: '/kosten', icon: 'receipt_long', label: 'Kosten' },
-    { path: '/werkgroep', icon: 'group', label: 'Werkgroep' },
+    { path: '/accommodaties', icon: 'hotel', label: 'Accommodaties' },
     { path: '/planning', icon: 'event', label: 'Planning' },
     { path: '/gastjes', icon: 'groups', label: 'Gastjes' },
+  ]
+
+  const bottomNavItems = [
     { path: '/formules', icon: 'functions', label: 'Formules' },
-    { path: '/verblijfzoeker', icon: 'search', label: 'Verblijfzoeker' },
   ]
 
   const isActive = (path: string) => location.pathname === path
@@ -241,8 +248,47 @@ export default function Sidebar({ onClose }: SidebarProps) {
             Wijzig versie
           </button>
         </div>
+        {/* Top Navigation Group */}
         <div className="flex flex-col gap-2">
-          {navItems.map((item) => (
+          {topNavItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => onClose?.()}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${
+                isActive(item.path)
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-[#111418] dark:text-gray-300'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">{item.icon}</span>
+              <p className="text-sm font-medium leading-normal">{item.label}</p>
+            </Link>
+          ))}
+        </div>
+
+        {/* Main Navigation */}
+        <div className="flex flex-col gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+          {mainNavItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => onClose?.()}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${
+                isActive(item.path)
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-[#111418] dark:text-gray-300'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">{item.icon}</span>
+              <p className="text-sm font-medium leading-normal">{item.label}</p>
+            </Link>
+          ))}
+        </div>
+
+        {/* Bottom Navigation */}
+        <div className="flex flex-col gap-2 pt-2 border-t border-gray-200 dark:border-gray-700 mt-auto">
+          {bottomNavItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}

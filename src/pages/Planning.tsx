@@ -9,7 +9,7 @@ interface DaySchedule {
   activities: ScheduleItem[]
 }
 
-type ViewMode = 'overview' | 'detail'
+type ViewMode = 'simple' | 'overview' | 'detail'
 
 function getTableName(version: VersionId): string {
   return `planning_schedule_${version}`
@@ -20,7 +20,7 @@ export default function Planning() {
   const [schedule, setSchedule] = useState<DaySchedule[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [viewMode, setViewMode] = useState<ViewMode>('overview')
+  const [viewMode, setViewMode] = useState<ViewMode>('simple')
   const [selectedDayTab, setSelectedDayTab] = useState<string | null>(null)
   const [editingItem, setEditingItem] = useState<{ day: string; index: number; field?: 'time' | 'activity' } | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -421,49 +421,381 @@ export default function Planning() {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1 max-w-md">
-          <div className="relative flex-1">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#617589] dark:text-gray-400 text-lg">
-              search
-            </span>
-            <input
-              type="text"
-              placeholder="Zoek activiteiten..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-            />
-          </div>
-        </div>
-        
-        {/* View Toggle */}
-        <div className="flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-900 p-1">
-          <button
-            onClick={() => setViewMode('overview')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              viewMode === 'overview'
-                ? 'bg-white dark:bg-gray-800 text-[#111418] dark:text-white shadow-sm'
-                : 'text-[#617589] dark:text-gray-400 hover:text-[#111418] dark:hover:text-white'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">calendar_view_week</span>
-            <span>10-Dagen Overzicht</span>
-          </button>
-          <button
-            onClick={() => setViewMode('detail')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              viewMode === 'detail'
-                ? 'bg-white dark:bg-gray-800 text-[#111418] dark:text-white shadow-sm'
-                : 'text-[#617589] dark:text-gray-400 hover:text-[#111418] dark:hover:text-white'
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">view_day</span>
-            <span>Detail Per Dag</span>
-          </button>
-        </div>
+      {/* View Toggle - Left Side */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setViewMode('simple')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            viewMode === 'simple'
+              ? 'bg-primary text-white shadow-sm'
+              : 'bg-gray-100 dark:bg-gray-900 text-[#617589] dark:text-gray-400 hover:text-[#111418] dark:hover:text-white'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">view_week</span>
+          <span>Simple Overview</span>
+        </button>
+        <button
+          onClick={() => setViewMode('overview')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            viewMode === 'overview'
+              ? 'bg-white dark:bg-gray-800 text-[#111418] dark:text-white shadow-sm'
+              : 'bg-gray-100 dark:bg-gray-900 text-[#617589] dark:text-gray-400 hover:text-[#111418] dark:hover:text-white'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">calendar_view_week</span>
+          <span>10-Dagen Overzicht</span>
+        </button>
+        <button
+          onClick={() => setViewMode('detail')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            viewMode === 'detail'
+              ? 'bg-white dark:bg-gray-800 text-[#111418] dark:text-white shadow-sm'
+              : 'bg-gray-100 dark:bg-gray-900 text-[#617589] dark:text-gray-400 hover:text-[#111418] dark:hover:text-white'
+          }`}
+        >
+          <span className="material-symbols-outlined text-base">view_day</span>
+          <span>Detail Per Dag</span>
+        </button>
       </div>
+
+      {/* Simple Overview View */}
+      {viewMode === 'simple' && (
+        <div className="space-y-6">
+          {schedule.map((daySchedule, dayIndex) => {
+            // Find all bus activities
+            const busActivities = daySchedule.activities.filter(act => isBusrit(act.activity))
+            
+            // Extract route from bus activity
+            const extractRoute = (activity: string): { from?: string; to?: string } | null => {
+              const lower = activity.toLowerCase()
+              // Look for arrow patterns or "naar" patterns
+              if (lower.includes('→') || lower.includes('->') || lower.includes('naar')) {
+                const arrowMatch = activity.match(/(.+?)[→-]+>(.+)/i) || 
+                                  activity.match(/(.+?)\s+naar\s+(.+)/i)
+                if (arrowMatch) {
+                  return {
+                    from: arrowMatch[1].trim(),
+                    to: arrowMatch[2].trim()
+                  }
+                }
+              }
+              // Try to extract city names
+              const cities = ['torhout', 'neurenberg', 'bratislava', 'frymburk', 'wenen']
+              const foundCities: string[] = []
+              cities.forEach(city => {
+                if (lower.includes(city)) {
+                  foundCities.push(city.charAt(0).toUpperCase() + city.slice(1))
+                }
+              })
+              if (foundCities.length >= 2) {
+                return {
+                  from: foundCities[0],
+                  to: foundCities[1]
+                }
+              }
+              // If only one city found, try to get from previous day or context
+              if (foundCities.length === 1) {
+                // Check previous day for location
+                if (dayIndex > 0) {
+                  const prevDay = schedule[dayIndex - 1]
+                  const prevLocation = prevDay.activities.find(act => 
+                    act.activity.toLowerCase().includes('neurenberg') ||
+                    act.activity.toLowerCase().includes('bratislava') ||
+                    act.activity.toLowerCase().includes('frymburk')
+                  )
+                  if (prevLocation) {
+                    const prevLower = prevLocation.activity.toLowerCase()
+                    if (prevLower.includes('neurenberg')) return { from: 'Neurenberg', to: foundCities[0] }
+                    if (prevLower.includes('bratislava')) return { from: 'Bratislava', to: foundCities[0] }
+                    if (prevLower.includes('frymburk')) return { from: 'Frymburk', to: foundCities[0] }
+                  }
+                }
+              }
+              return null
+            }
+
+            // Combine vertrek and aankomst into one busrit
+            const vertrek = busActivities.find(act => 
+              act.activity.toLowerCase().includes('vertrek')
+            )
+            const aankomst = busActivities.find(act => 
+              act.activity.toLowerCase().includes('aankomst')
+            )
+
+            // Determine route - prefer from combined info
+            let busRoute: { from?: string; to?: string } | null = null
+            if (vertrek) {
+              busRoute = extractRoute(vertrek.activity)
+            }
+            if (!busRoute && aankomst) {
+              busRoute = extractRoute(aankomst.activity)
+            }
+            // If still no route, try to combine vertrek and aankomst info
+            if (!busRoute && vertrek && aankomst) {
+              const vertrekLower = vertrek.activity.toLowerCase()
+              const aankomstLower = aankomst.activity.toLowerCase()
+              const cities = ['torhout', 'neurenberg', 'bratislava', 'frymburk', 'wenen']
+              const fromCity = cities.find(city => vertrekLower.includes(city))
+              const toCity = cities.find(city => aankomstLower.includes(city))
+              if (fromCity && toCity) {
+                busRoute = {
+                  from: fromCity.charAt(0).toUpperCase() + fromCity.slice(1),
+                  to: toCity.charAt(0).toUpperCase() + toCity.slice(1)
+                }
+              }
+            }
+
+            // Check if this is a day trip (like Wenen on day 7)
+            const isDayTrip = daySchedule.activities.some(act => 
+              act.activity.toLowerCase().includes('dagtrip') ||
+              act.activity.toLowerCase().includes('dagtocht') ||
+              (act.activity.toLowerCase().includes('wenen') && !isBusrit(act.activity))
+            )
+
+            // Determine where we sleep this night (verblijfplaats)
+            // Based on user specification:
+            // Day 1: Neurenberg, Day 2: Bus, Days 3-7: Bratislava, Days 8-9: Frymburk, Day 10: Bus
+            let verblijfplaats: string | null = null
+            
+            const dayNumber = parseInt(daySchedule.day.replace(/[^0-9]/g, '')) || dayIndex + 1
+            
+            // Direct mapping based on day number
+            if (dayNumber === 1) {
+              verblijfplaats = 'Neurenberg'
+            } else if (dayNumber === 2) {
+              verblijfplaats = 'Bus'
+            } else if (dayNumber >= 3 && dayNumber <= 7) {
+              verblijfplaats = 'Bratislava'
+            } else if (dayNumber === 8 || dayNumber === 9) {
+              verblijfplaats = 'Frymburk'
+            } else if (dayNumber === 10) {
+              verblijfplaats = 'Bus'
+            }
+            
+            // Fallback: try to detect from activities if day number parsing fails
+            if (!verblijfplaats) {
+              // First, check if there's a "slapen" activity that mentions a location
+              const slapenActivity = daySchedule.activities.find(act => 
+                act.activity.toLowerCase().includes('slapen') ||
+                act.activity.toLowerCase().includes('overnachten')
+              )
+              
+              if (slapenActivity) {
+                const slapenLower = slapenActivity.activity.toLowerCase()
+                if (slapenLower.includes('bus')) {
+                  verblijfplaats = 'Bus'
+                } else if (slapenLower.includes('neurenberg')) {
+                  verblijfplaats = 'Neurenberg'
+                } else if (slapenLower.includes('bratislava')) {
+                  verblijfplaats = 'Bratislava'
+                } else if (slapenLower.includes('frymburk')) {
+                  verblijfplaats = 'Frymburk'
+                }
+              }
+              
+              // If not found, check for camping/accommodation mentions
+              if (!verblijfplaats) {
+                const accommodation = daySchedule.activities.find(act => 
+                  act.activity.toLowerCase().includes('camping') ||
+                  act.activity.toLowerCase().includes('accommodatie') ||
+                  act.activity.toLowerCase().includes('verblijf')
+                )
+                
+                if (accommodation) {
+                  const actLower = accommodation.activity.toLowerCase()
+                  if (actLower.includes('neurenberg')) {
+                    verblijfplaats = 'Neurenberg'
+                  } else if (actLower.includes('bratislava')) {
+                    verblijfplaats = 'Bratislava'
+                  } else if (actLower.includes('frymburk')) {
+                    verblijfplaats = 'Frymburk'
+                  } else if (actLower.includes('bus')) {
+                    verblijfplaats = 'Bus'
+                  }
+                }
+              }
+              
+              // If still not found, check if next day starts with a busrit from a location
+              if (!verblijfplaats && dayIndex < schedule.length - 1) {
+                const nextDay = schedule[dayIndex + 1]
+                const nextDayBusrit = nextDay.activities.find(act => 
+                  isBusrit(act.activity) && act.activity.toLowerCase().includes('vertrek')
+                )
+                
+                if (nextDayBusrit) {
+                  const nextDayLower = nextDayBusrit.activity.toLowerCase()
+                  if (nextDayLower.includes('neurenberg')) {
+                    verblijfplaats = 'Neurenberg'
+                  } else if (nextDayLower.includes('bratislava')) {
+                    verblijfplaats = 'Bratislava'
+                  } else if (nextDayLower.includes('frymburk')) {
+                    verblijfplaats = 'Frymburk'
+                  }
+                }
+              }
+              
+              // If still not found, check if we arrive somewhere today (we sleep there)
+              if (!verblijfplaats && aankomst) {
+                const aankomstLower = aankomst.activity.toLowerCase()
+                if (aankomstLower.includes('neurenberg')) {
+                  verblijfplaats = 'Neurenberg'
+                } else if (aankomstLower.includes('bratislava')) {
+                  verblijfplaats = 'Bratislava'
+                } else if (aankomstLower.includes('frymburk')) {
+                  verblijfplaats = 'Frymburk'
+                }
+              }
+              
+              // If still not found, check previous day's location (if we don't leave today)
+              if (!verblijfplaats && dayIndex > 0 && !vertrek) {
+                const prevDay = schedule[dayIndex - 1]
+                const prevDayActivities = prevDay.activities.map(a => a.activity.toLowerCase()).join(' ')
+                if (prevDayActivities.includes('neurenberg')) {
+                  verblijfplaats = 'Neurenberg'
+                } else if (prevDayActivities.includes('bratislava')) {
+                  verblijfplaats = 'Bratislava'
+                } else if (prevDayActivities.includes('frymburk')) {
+                  verblijfplaats = 'Frymburk'
+                }
+              }
+            }
+
+            // Find accommodation/location for display (exclude day trips)
+            const accommodation = !isDayTrip ? daySchedule.activities.find(act => 
+              act.activity.toLowerCase().includes('camping') ||
+              act.activity.toLowerCase().includes('accommodatie') ||
+              act.activity.toLowerCase().includes('neurenberg') ||
+              act.activity.toLowerCase().includes('bratislava') ||
+              act.activity.toLowerCase().includes('frymburk')
+            ) : null
+
+            // Extract location name for header badge
+            let location = null
+            if (accommodation) {
+              const actLower = accommodation.activity.toLowerCase()
+              if (actLower.includes('neurenberg')) location = 'Neurenberg (Duitsland)'
+              else if (actLower.includes('bratislava')) location = 'Bratislava (Slowakije)'
+              else if (actLower.includes('frymburk')) location = 'Frymburk (Tsjechië)'
+              else if (actLower.includes('wenen')) location = 'Wenen (Oostenrijk)'
+            } else if (isDayTrip) {
+              // For day trips, show the destination
+              const dayTripAct = daySchedule.activities.find(act => 
+                act.activity.toLowerCase().includes('wenen')
+              )
+              if (dayTripAct) {
+                location = 'Dagtrip: Wenen'
+              }
+            }
+
+            // Get all activities for day planning (including bus activities)
+            const allActivities = daySchedule.activities.filter(act => 
+              act.activity.trim() !== '?' &&
+              act.activity.trim() !== ''
+            )
+
+            return (
+              <div key={daySchedule.day} className="bg-white dark:bg-background-dark rounded-xl border border-[#dbe0e6] dark:border-gray-700 overflow-hidden">
+                {/* Day Header */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-b border-[#dbe0e6] dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-[#111418] dark:text-white">{daySchedule.day}</h3>
+                        <p className="text-sm text-[#617589] dark:text-gray-400">{formatDate(daySchedule.date)}</p>
+                      </div>
+                      {verblijfplaats && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                          <span className="material-symbols-outlined text-blue-600 dark:text-blue-400 text-base">hotel</span>
+                          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Verblijf: {verblijfplaats}</span>
+                        </div>
+                      )}
+                    </div>
+                    {location && (
+                      <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        isDayTrip 
+                          ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                          : 'bg-primary/10 text-primary'
+                      }`}>
+                        {location}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Important Moments - Busrit with route */}
+                {(vertrek || aankomst) && busRoute && (
+                  <div className="p-4 border-b border-[#dbe0e6] dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-[#617589] dark:text-gray-400 mb-3">Belangrijke Momenten</h4>
+                    <div className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-purple-600 dark:text-purple-400 text-lg">directions_bus</span>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-[#617589] dark:text-gray-400 uppercase mb-1">Busrit</p>
+                        <p className="text-sm font-medium text-[#111418] dark:text-white mb-2">
+                          {busRoute.from} → {busRoute.to}
+                        </p>
+                        <div className="flex flex-wrap gap-4 text-xs text-[#617589] dark:text-gray-400">
+                          {vertrek && vertrek.time && (
+                            <div>
+                              <span className="font-semibold">Vertrek:</span> {vertrek.time}
+                            </div>
+                          )}
+                          {aankomst && aankomst.time && (
+                            <div>
+                              <span className="font-semibold">Aankomst:</span> {aankomst.time}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Day Schedule - Time-based (includes bus activities) */}
+                {allActivities.length > 0 && (
+                  <div className="p-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-[#617589] dark:text-gray-400 mb-3">Dagplanning</h4>
+                    <div className="space-y-2">
+                      {allActivities.map((act, idx) => {
+                        const timeInfo = parseTime(act.time)
+                        const isBus = isBusrit(act.activity)
+                        const actRoute = isBus ? extractRoute(act.activity) : null
+                        
+                        return (
+                          <div key={idx} className={`flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                            isBus ? 'bg-purple-50/30 dark:bg-purple-900/10 border-l-2 border-purple-500' : ''
+                          }`}>
+                            {act.time && (
+                              <div className="flex-shrink-0 w-16 text-right">
+                                <p className="text-sm font-medium text-[#111418] dark:text-white">
+                                  {timeInfo ? `${String(Math.floor(timeInfo.start / 60)).padStart(2, '0')}:${String(timeInfo.start % 60).padStart(2, '0')}` : act.time}
+                                </p>
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              {isBus && actRoute ? (
+                                <div>
+                                  <p className="text-sm font-medium text-[#111418] dark:text-white">
+                                    Busrit: {actRoute.from} → {actRoute.to}
+                                  </p>
+                                  {act.activity !== `Busrit ${actRoute.from} → ${actRoute.to}` && (
+                                    <p className="text-xs text-[#617589] dark:text-gray-400 mt-0.5">{act.activity}</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-[#111418] dark:text-white">{act.activity}</p>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* 10-Dagen Overview View */}
       {viewMode === 'overview' && (

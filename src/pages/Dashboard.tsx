@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { KostenItem, Parameters, VersionId, PlanningDag } from '../types'
 import { useVersion, VERSIONS } from '../context/VersionContext'
@@ -271,6 +272,45 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
+          {/* Quick Action Buttons */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Link
+              to="/accommodaties"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl text-primary">hotel</span>
+              <span className="text-sm font-medium text-[#111418] dark:text-white">Accommodaties</span>
+            </Link>
+            <Link
+              to="/notities"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl text-primary">note</span>
+              <span className="text-sm font-medium text-[#111418] dark:text-white">Notities</span>
+            </Link>
+            <Link
+              to="/kosten"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl text-primary">receipt_long</span>
+              <span className="text-sm font-medium text-[#111418] dark:text-white">Kosten</span>
+            </Link>
+            <Link
+              to="/planning"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl text-primary">event</span>
+              <span className="text-sm font-medium text-[#111418] dark:text-white">Planning</span>
+            </Link>
+            <Link
+              to="/werkgroep"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl text-primary">group</span>
+              <span className="text-sm font-medium text-[#111418] dark:text-white">To-do Werkgroep</span>
+            </Link>
+          </div>
+
           {/* Stats Cards */}
           <StatsCards
             kostenItems={kostenItems}

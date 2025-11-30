@@ -8,6 +8,8 @@ import Gastjes from './pages/Gastjes'
 import Formulas from './pages/Formulas'
 import Prioriteiten from './pages/Prioriteiten'
 import Verblijfzoeker from './pages/Verblijfzoeker'
+import Accommodaties from './pages/Accommodaties'
+import Notities from './pages/Notities'
 import { VersionProvider } from './context/VersionContext'
 import VersionSelector from './components/VersionSelector'
 
@@ -26,7 +28,8 @@ function App() {
                 <Route path="/werkgroep" element={<Werkgroep />} />
                 <Route path="/formules" element={<Formulas />} />
                 <Route path="/prioriteiten" element={<Prioriteiten />} />
-                <Route path="/verblijfzoeker" element={<Verblijfzoeker />} />
+                <Route path="/accommodaties" element={<Accommodaties />} />
+                <Route path="/notities" element={<Notities />} />
               </Routes>
             </Layout>
           </div>
