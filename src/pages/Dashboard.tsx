@@ -216,9 +216,53 @@ export default function Dashboard() {
       const updatedParams = { ...parameters, [field]: value }
       setParameters(updatedParams)
       
-      // Recalculate totals
+      // If aantal_gastjes or aantal_leiders changed, update relevant kosten items
+      let updatedKostenItems = kostenItems
+      if (field === 'aantal_gastjes' || field === 'aantal_leiders') {
+        const oldGastjes = parameters.aantal_gastjes || 0
+        const oldLeiders = parameters.aantal_leiders || 0
+        const oldTotaalPersonen = oldGastjes + oldLeiders
+        
+        const newGastjes = field === 'aantal_gastjes' ? (value || 0) : oldGastjes
+        const newLeiders = field === 'aantal_leiders' ? (value || 0) : oldLeiders
+        const newTotaalPersonen = newGastjes + newLeiders
+        
+        // Update all kosten items with splitsing 'iedereen' and aantal equal to old total
+        if (oldTotaalPersonen !== newTotaalPersonen) {
+          const kostenTableName = `kosten_${currentVersion}`
+          const itemsToUpdate = kostenItems.filter(
+            item => item.splitsing === 'iedereen' && item.aantal === oldTotaalPersonen
+          )
+          
+          for (const item of itemsToUpdate) {
+            await supabase
+              .from(kostenTableName)
+              .update({ 
+                aantal: newTotaalPersonen,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', item.id)
+            
+            await logChange(
+              currentVersion,
+              kostenTableName,
+              item.id,
+              'aantal',
+              oldTotaalPersonen,
+              newTotaalPersonen,
+              userName
+            )
+          }
+          
+          // Reload kosten items to reflect changes
+          updatedKostenItems = await getKostenItems()
+          setKostenItems(updatedKostenItems)
+        }
+      }
+      
+      // Recalculate totals with updated parameters and kosten items
       const totals: { [key: string]: number } = {}
-      kostenItems.forEach((item) => {
+      updatedKostenItems.forEach((item) => {
         const categorie = item.categorie
         const totaal = Number(item.totaal) || calculateItemTotal(item, updatedParams)
         totals[categorie] = (totals[categorie] || 0) + totaal
@@ -312,11 +356,12 @@ export default function Dashboard() {
           </div>
 
           {/* Stats Cards */}
-          <StatsCards
-            kostenItems={kostenItems}
-            parameters={parameters}
-            calculateItemTotal={calculateItemTotal}
-          />
+            <StatsCards
+              kostenItems={kostenItems}
+              parameters={parameters}
+              calculateItemTotal={calculateItemTotal}
+              categoryTotals={categoryTotals}
+            />
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -507,10 +552,12 @@ function StatsCards({
   kostenItems,
   parameters,
   calculateItemTotal,
+  categoryTotals,
 }: {
   kostenItems: KostenItem[]
   parameters: Parameters | null
   calculateItemTotal: (item: KostenItem, params: Parameters | null) => number
+  categoryTotals: CategoryTotal[]
 }) {
   const formatEuro = (value: number, withSymbol = true): string => {
     const formatted = Math.round(value).toLocaleString('nl-BE')
@@ -626,8 +673,8 @@ function StatsCards({
   const totaleKostenGastjes = variableCostsGastjes + fixedCostsGastjes
   const totaleKostenLeiders = variableCostsLeiders + fixedCostsLeiders
 
-  // Total costs (should equal fixedCosts + variableCostsGastjes + variableCostsLeiders)
-  const totaleKosten = fixedCosts + variableCostsGastjes + variableCostsLeiders
+  // Total costs - use sum of category totals to ensure consistency with category breakdown
+  const totaleKosten = categoryTotals.reduce((sum, cat) => sum + cat.totaal, 0)
 
   // Cost per person type (with proportional fixed costs + variable costs)
   const kostPerGastje = aantalGastjes > 0 ? totaleKostenGastjes / aantalGastjes : 0

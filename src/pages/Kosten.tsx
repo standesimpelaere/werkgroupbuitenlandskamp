@@ -21,14 +21,105 @@ export default function Kosten() {
     tone: 'info',
   })
   const [showAddModal, setShowAddModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<KostenItem | null>(null)
   const [editingField, setEditingField] = useState<{ id: string; field: string } | null>(null)
   const [addModalPrijsType, setAddModalPrijsType] = useState<'totaal' | 'per_persoon'>('per_persoon')
   const [addModalAantalType, setAddModalAantalType] = useState<'getal' | 'iedereen' | 'gastjes' | 'leiders'>('getal')
+  const [editModalPrijsType, setEditModalPrijsType] = useState<'totaal' | 'per_persoon'>('per_persoon')
+  const [editModalAantalType, setEditModalAantalType] = useState<'getal' | 'iedereen' | 'gastjes' | 'leiders'>('getal')
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({})
+  const [editingKmValues, setEditingKmValues] = useState<{ [dagId: string]: string }>({})
+  const [editingTotalKm, setEditingTotalKm] = useState<string | null>(null)
 
   useEffect(() => {
     loadAllData()
   }, [currentVersion])
+
+  const restoreKmFromChangeLog = async (planningDays: PlanningDag[]) => {
+    try {
+      const tableName = getTableName('planning', currentVersion)
+      
+      // Get the latest non-zero km values from change log for each day
+      const restoredDays = await Promise.all(
+        planningDays.map(async (dag) => {
+          // Only try to restore if current km is 0 or null
+          if (dag.km && dag.km > 0) {
+            return dag
+          }
+          
+          // Find all change log entries for this day's km field, ordered by date
+          const { data: changeLogs } = await supabase
+            .from('change_log')
+            .select('old_value, new_value, changed_at')
+            .eq('version', currentVersion)
+            .eq('table_name', tableName)
+            .eq('record_id', dag.id)
+            .eq('field_name', 'km')
+            .order('changed_at', { ascending: false })
+          
+          if (changeLogs && changeLogs.length > 0) {
+            // Look through change logs to find the last non-zero value
+            for (const log of changeLogs) {
+              // Try old_value first (the value before it was changed)
+              if (log.old_value) {
+                try {
+                  const oldKm = JSON.parse(log.old_value)
+                  if (typeof oldKm === 'number' && oldKm > 0) {
+                    return { ...dag, km: oldKm }
+                  }
+                } catch (e) {
+                  // Continue to next log entry
+                }
+              }
+              
+              // Try new_value if old_value wasn't valid
+              if (log.new_value) {
+                try {
+                  const newKm = JSON.parse(log.new_value)
+                  if (typeof newKm === 'number' && newKm > 0) {
+                    return { ...dag, km: newKm }
+                  }
+                } catch (e) {
+                  // Continue to next log entry
+                }
+              }
+            }
+          }
+          
+          return dag
+        })
+      )
+      
+      // Update any days that were restored
+      const updates = restoredDays
+        .filter((dag, index) => dag.km !== planningDays[index].km && dag.km > 0)
+        .map(dag => ({
+          id: dag.id,
+          km: dag.km
+        }))
+      
+      if (updates.length > 0) {
+        const userName = getCurrentUserName()
+        for (const update of updates) {
+          const oldDag = planningDays.find(d => d.id === update.id)
+          await supabase
+            .from(tableName)
+            .update({ km: update.km, updated_at: new Date().toISOString() })
+            .eq('id', update.id)
+          
+          await logChange(currentVersion, tableName, update.id, 'km', oldDag?.km || null, update.km, userName)
+        }
+        
+        return restoredDays
+      }
+      
+      return planningDays
+    } catch (error) {
+      console.error('Error restoring km from change log:', error)
+      return planningDays
+    }
+  }
+
 
   const loadAllData = async () => {
     try {
@@ -40,16 +131,52 @@ export default function Kosten() {
         getParameters(),
       ])
 
-      setKostenItems(loadedKosten)
-      setPlanningData(loadedPlanning)
-      setParameters(params)
-      setStatus({
-        message: `${loadedKosten.length} kostitems geladen.`,
-        tone: 'success',
+      // Remove duplicates based on unique combination of categorie, subcategorie, beschrijving, and automatisch
+      const seen = new Map<string, string>()
+      const uniqueKosten: KostenItem[] = []
+      const duplicatesToDelete: string[] = []
+
+      loadedKosten.forEach((item) => {
+        const key = `${item.categorie}|${item.subcategorie}|${item.beschrijving || ''}|${item.automatisch || false}`
+        if (seen.has(key)) {
+          // This is a duplicate - keep the first one, mark this one for deletion
+          duplicatesToDelete.push(item.id)
+        } else {
+          seen.set(key, item.id)
+          uniqueKosten.push(item)
+        }
       })
 
-      if (params && loadedPlanning.length > 0 && loadedKosten.length > 0) {
-        setTimeout(() => calculateAutomaticItemsWithParams(params, loadedKosten, loadedPlanning), 300)
+      // Delete duplicates from database
+      if (duplicatesToDelete.length > 0) {
+        const tableName = getTableName('kosten', currentVersion)
+        const userName = getCurrentUserName()
+        
+        for (const id of duplicatesToDelete) {
+          const duplicateItem = loadedKosten.find(item => item.id === id)
+          if (duplicateItem) {
+            await supabase.from(tableName).delete().eq('id', id)
+            await logChange(currentVersion, tableName, id, null, duplicateItem, null, userName)
+          }
+        }
+        
+        setStatus({
+          message: `${duplicatesToDelete.length} duplicaat item(s) verwijderd. ${uniqueKosten.length} kostitems geladen.`,
+          tone: 'success',
+        })
+      } else {
+        setStatus({
+          message: `${uniqueKosten.length} kostitems geladen.`,
+          tone: 'success',
+        })
+      }
+
+      setKostenItems(uniqueKosten)
+      setPlanningData(loadedPlanning)
+      setParameters(params)
+
+      if (params && loadedPlanning.length > 0 && uniqueKosten.length > 0) {
+        setTimeout(() => calculateAutomaticItemsWithParams(params, uniqueKosten, loadedPlanning), 300)
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -68,19 +195,28 @@ export default function Kosten() {
     if (!params || !planning.length || !items.length) return
 
     const totaalPersonen = (params.aantal_gastjes || 0) + (params.aantal_leiders || 0)
-    const aantalBusdagen = planning.length
+    // Use 10 days for calculation instead of all days
+    const aantalBusdagen = Math.min(10, planning.length)
     const totaalKm = planning.reduce((sum, dag) => sum + (dag.km || 0), 0)
 
     const updates: { id: string; totaal: number; aantal?: number }[] = []
 
     // Update bus kosten
     const busItem = items.find((item) => item.subcategorie === 'Bus huur' && item.automatisch)
-    if (busItem && params.bus_dagprijs && params.bus_daglimiet && params.bus_extra_km) {
+    if (busItem && params.bus_dagprijs && params.bus_extra_km) {
       let busKosten = params.bus_dagprijs * aantalBusdagen
-      const maxKmZonderExtra = params.bus_daglimiet * aantalBusdagen
-      if (totaalKm > maxKmZonderExtra) {
-        const extraKm = totaalKm - maxKmZonderExtra
-        busKosten += extraKm * params.bus_extra_km
+      
+      // If daglimiet is 0 or null, all km are extra (paid per km)
+      // Otherwise, calculate extra km above the limit
+      if (params.bus_daglimiet === 0 || params.bus_daglimiet === null) {
+        // All kilometers are extra (paid per km)
+        busKosten += totaalKm * params.bus_extra_km
+      } else {
+        const maxKmZonderExtra = params.bus_daglimiet * aantalBusdagen
+        if (totaalKm > maxKmZonderExtra) {
+          const extraKm = totaalKm - maxKmZonderExtra
+          busKosten += extraKm * params.bus_extra_km
+        }
       }
       updates.push({ id: busItem.id, totaal: busKosten })
     }
@@ -251,19 +387,32 @@ export default function Kosten() {
     }
   }
 
-  const handleUpdateField = async (id: string, field: string, value: number | string) => {
+  const handleUpdateField = async (id: string, field: string, value: number | string | boolean) => {
     try {
       const tableName = getTableName('kosten', currentVersion)
       const userName = getCurrentUserName()
       const oldItem = kostenItems.find(item => item.id === id)
       const oldValue = oldItem ? (oldItem as any)[field] : null
       
+      // Only include kost_van_bus if it's a boolean (to avoid errors if column doesn't exist yet)
+      const updateData: any = { [field]: value, updated_at: new Date().toISOString() }
+      if (field === 'kost_van_bus' && typeof value !== 'boolean') {
+        delete updateData.kost_van_bus
+      }
+      
       const { error } = await supabase
         .from(tableName)
-        .update({ [field]: value, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase update error:', error)
+        // If error is about missing column, provide helpful message
+        if (error.message && (error.message.includes('kost_van_bus') || error.message.includes('column') || error.message.includes('does not exist'))) {
+          throw new Error('Het veld "kost_van_bus" bestaat nog niet in de database. Voeg eerst de kolom toe via een migratie.')
+        }
+        throw error
+      }
 
       // Log change
       await logChange(currentVersion, tableName, id, field, oldValue, value, userName)
@@ -275,8 +424,9 @@ export default function Kosten() {
       setStatus({ message: 'Item bijgewerkt.', tone: 'success' })
     } catch (error) {
       console.error('Error updating field:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Onbekende fout'
       setStatus({
-        message: `Fout bij bijwerken: ${error instanceof Error ? error.message : 'Onbekende fout'}`,
+        message: `Fout bij bijwerken: ${errorMessage}`,
         tone: 'error',
       })
     }
@@ -296,6 +446,12 @@ export default function Kosten() {
         beschrijving: formData.get('beschrijving') as string || null,
         opmerkingen: formData.get('opmerkingen') as string || null,
         automatisch: formData.get('automatisch') === 'on',
+      }
+      
+      // Only add kost_van_bus if checkbox was checked (to avoid errors if column doesn't exist yet)
+      const kostVanBus = formData.get('kost_van_bus') === 'on'
+      if (kostVanBus) {
+        newItem.kost_van_bus = true
       }
 
       // Als totaal bedrag: altijd iedereen, eenheid groep, aantal 1
@@ -317,6 +473,11 @@ export default function Kosten() {
         // Set aantal based on aantalType
         if (aantalType === 'getal') {
           newItem.aantal = aantalWaarde
+        } else if (aantalType === 'iedereen') {
+          // For "iedereen", set aantal to gastjes + leiders
+          const gastjes = parameters?.aantal_gastjes || 0
+          const leiders = parameters?.aantal_leiders || 0
+          newItem.aantal = gastjes + leiders
         } else {
           newItem.aantal = 1
         }
@@ -353,6 +514,24 @@ export default function Kosten() {
       const tableName = getTableName('kosten', currentVersion)
       const userName = getCurrentUserName()
       
+      // Check for duplicates before inserting
+      const duplicateKey = `${newItem.categorie}|${newItem.subcategorie}|${newItem.beschrijving || ''}|${newItem.automatisch || false}`
+      const existingDuplicate = kostenItems.find(
+        item => 
+          item.categorie === newItem.categorie &&
+          item.subcategorie === newItem.subcategorie &&
+          (item.beschrijving || '') === (newItem.beschrijving || '') &&
+          (item.automatisch || false) === (newItem.automatisch || false)
+      )
+      
+      if (existingDuplicate) {
+        setStatus({
+          message: 'Dit item bestaat al. Duplicaten zijn niet toegestaan.',
+          tone: 'error',
+        })
+        return
+      }
+      
       const { data, error } = await supabase
         .from(tableName)
         .insert(newItem)
@@ -375,6 +554,167 @@ export default function Kosten() {
       console.error('Error adding item:', error)
       setStatus({
         message: `Fout bij toevoegen: ${error instanceof Error ? error.message : 'Onbekende fout'}`,
+        tone: 'error',
+      })
+    }
+  }
+
+  const handleEditItem = (item: KostenItem) => {
+    setEditingItem(item)
+    // Determine prijs type based on item
+    if (item.totaal) {
+      setEditModalPrijsType('totaal')
+    } else {
+      setEditModalPrijsType('per_persoon')
+      // Determine aantal type
+      const gastjes = parameters?.aantal_gastjes || 0
+      const leiders = parameters?.aantal_leiders || 0
+      const totaalPersonen = gastjes + leiders
+      
+      if (item.splitsing === 'iedereen' && item.aantal === totaalPersonen) {
+        setEditModalAantalType('iedereen')
+      } else if (item.splitsing === 'gastjes') {
+        setEditModalAantalType('gastjes')
+      } else if (item.splitsing === 'leiders') {
+        setEditModalAantalType('leiders')
+      } else {
+        setEditModalAantalType('getal')
+      }
+    }
+  }
+
+  const handleUpdateItem = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editingItem) return
+
+    const formData = new FormData(e.currentTarget)
+
+    try {
+      const prijsType = editModalPrijsType
+      const prijsWaarde = formData.get('prijs') ? Number(formData.get('prijs')) : null
+
+      const updatedItem: any = {
+        categorie: formData.get('categorie') as string,
+        subcategorie: formData.get('subcategorie') as string,
+        beschrijving: formData.get('beschrijving') as string || null,
+        opmerkingen: formData.get('opmerkingen') as string || null,
+        updated_at: new Date().toISOString(),
+      }
+      
+      // Only add kost_van_bus if checkbox was checked (to avoid errors if column doesn't exist yet)
+      const kostVanBus = formData.get('kost_van_bus') === 'on'
+      if (kostVanBus) {
+        updatedItem.kost_van_bus = true
+      } else {
+        // Explicitly set to false if unchecked (only if column exists)
+        updatedItem.kost_van_bus = false
+      }
+
+      // Als totaal bedrag: altijd iedereen, eenheid groep, aantal 1
+      if (prijsType === 'totaal') {
+        updatedItem.eenheid = 'groep'
+        updatedItem.aantal = 1
+        updatedItem.splitsing = 'iedereen'
+        updatedItem.totaal = prijsWaarde
+        updatedItem.prijs_per_persoon = null
+        updatedItem.prijs_per_persoon_gastjes = null
+        updatedItem.prijs_per_persoon_leiders = null
+      } else {
+        // Per persoon: gebruik aantalType
+        const aantalType = editModalAantalType
+        const aantalWaarde = formData.get('aantal_getal') ? Number(formData.get('aantal_getal')) : 1
+
+        updatedItem.eenheid = 'persoon'
+
+        // Set aantal based on aantalType
+        if (aantalType === 'getal') {
+          updatedItem.aantal = aantalWaarde
+        } else if (aantalType === 'iedereen') {
+          // For "iedereen", set aantal to gastjes + leiders
+          const gastjes = parameters?.aantal_gastjes || 0
+          const leiders = parameters?.aantal_leiders || 0
+          updatedItem.aantal = gastjes + leiders
+        } else {
+          updatedItem.aantal = 1
+        }
+
+        // Set splitsing and prices based on aantalType
+        if (aantalType === 'iedereen') {
+          updatedItem.splitsing = 'iedereen'
+          updatedItem.prijs_per_persoon = prijsWaarde
+          updatedItem.totaal = null
+          updatedItem.prijs_per_persoon_gastjes = null
+          updatedItem.prijs_per_persoon_leiders = null
+        } else if (aantalType === 'gastjes') {
+          updatedItem.splitsing = 'gastjes'
+          updatedItem.prijs_per_persoon_gastjes = prijsWaarde
+          updatedItem.totaal = null
+          updatedItem.prijs_per_persoon = null
+          updatedItem.prijs_per_persoon_leiders = null
+        } else if (aantalType === 'leiders') {
+          updatedItem.splitsing = 'leiders'
+          updatedItem.prijs_per_persoon_leiders = prijsWaarde
+          updatedItem.totaal = null
+          updatedItem.prijs_per_persoon = null
+          updatedItem.prijs_per_persoon_gastjes = null
+        } else {
+          // getal - aantal personen
+          updatedItem.splitsing = 'iedereen'
+          updatedItem.prijs_per_persoon = prijsWaarde
+          updatedItem.totaal = null
+          updatedItem.prijs_per_persoon_gastjes = null
+          updatedItem.prijs_per_persoon_leiders = null
+        }
+      }
+
+      const tableName = getTableName('kosten', currentVersion)
+      const userName = getCurrentUserName()
+      
+      // Only include kost_van_bus if it's defined (to avoid errors if column doesn't exist yet)
+      const updateData: any = { ...updatedItem }
+      // If kost_van_bus is false, we still want to set it to false (not undefined)
+      // Only skip it if it's truly undefined
+      if (updateData.kost_van_bus === undefined) {
+        delete updateData.kost_van_bus
+      }
+      
+      const { error } = await supabase
+        .from(tableName)
+        .update(updateData)
+        .eq('id', editingItem.id)
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        // If error is about missing column, provide helpful message
+        if (error.message && (error.message.includes('kost_van_bus') || error.message.includes('column') || error.message.includes('does not exist'))) {
+          throw new Error('Het veld "kost_van_bus" bestaat nog niet in de database. Voeg eerst de kolom toe via een migratie.')
+        }
+        throw error
+      }
+
+      // Log update
+      await logChange(currentVersion, tableName, editingItem.id, null, editingItem, updatedItem, userName)
+
+      const updatedItems = kostenItems.map((item) => (item.id === editingItem.id ? { ...item, ...updatedItem } : item))
+      setKostenItems(updatedItems)
+      
+      setEditingItem(null)
+      setEditModalPrijsType('per_persoon')
+      setEditModalAantalType('getal')
+      setStatus({ message: 'Item bijgewerkt.', tone: 'success' })
+    } catch (error) {
+      console.error('Error updating item:', error)
+      let errorMessage = 'Onbekende fout'
+      if (error instanceof Error) {
+        errorMessage = error.message
+        console.error('Full error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        })
+      }
+      setStatus({
+        message: `Fout bij bijwerken: ${errorMessage}`,
         tone: 'error',
       })
     }
@@ -591,11 +931,103 @@ export default function Kosten() {
     )
   }
 
+  const handleUpdateKm = async (dagId: string, newKm: number): Promise<PlanningDag[] | undefined> => {
+    try {
+      const tableName = getTableName('planning', currentVersion)
+      const userName = getCurrentUserName()
+      const oldDag = planningData.find(d => d.id === dagId)
+      
+      const { error } = await supabase
+        .from(tableName)
+        .update({ km: newKm, updated_at: new Date().toISOString() })
+        .eq('id', dagId)
+
+      if (error) throw error
+
+      await logChange(currentVersion, tableName, dagId, 'km', oldDag?.km || null, newKm, userName)
+
+      const updatedPlanning = planningData.map(d => d.id === dagId ? { ...d, km: newKm } : d)
+      setPlanningData(updatedPlanning)
+      
+      // Recalculate automatic items with updated planning data
+      if (parameters) {
+        setTimeout(() => {
+          calculateAutomaticItemsWithParams(parameters, kostenItems, updatedPlanning)
+        }, 300)
+      }
+      
+      // Return updated planning for use in handleUpdateTotalKm
+      return updatedPlanning
+    } catch (error) {
+      console.error('Error updating km:', error)
+      setStatus({
+        message: `Fout bij bijwerken: ${error instanceof Error ? error.message : 'Onbekende fout'}`,
+        tone: 'error',
+      })
+      // Reload data on error to restore correct state
+      loadAllData()
+      return undefined
+    }
+  }
+
+  const handleUpdateTotalKm = async (newTotal: number) => {
+    try {
+      // Calculate current total of first 10 days
+      const first10Days = planningData.slice(0, 10)
+      const currentTotalFirst10 = first10Days.reduce((sum, dag) => sum + (dag.km || 0), 0)
+      
+      // Calculate what the extra should be to make the total match
+      const newExtra = Math.max(0, newTotal - currentTotalFirst10)
+      
+      // Update the extra km
+      const extraDays = planningData.slice(10)
+      if (extraDays.length > 0) {
+        // Update the first extra day (day 11) with the new value
+        const extraDay = extraDays[0]
+        await handleUpdateKm(extraDay.id, newExtra)
+      } else if (planningData.length >= 11) {
+        // Update day 11 if it exists
+        const day11 = planningData[10]
+        if (day11) {
+          await handleUpdateKm(day11.id, newExtra)
+        }
+      } else {
+        // If no day 11 exists, we need to create it or update the last day
+        // This is a fallback - ideally day 11 should exist
+        if (planningData.length > 0) {
+          const lastDay = planningData[planningData.length - 1]
+          await handleUpdateKm(lastDay.id, newExtra)
+        }
+      }
+      
+      // Reload planning data to ensure state is in sync with database
+      // This ensures that when the page is reloaded, the values persist
+      const [loadedPlanning] = await Promise.all([
+        getPlanningData(),
+      ])
+      setPlanningData(loadedPlanning)
+    } catch (error) {
+      console.error('Error updating total km:', error)
+      setStatus({
+        message: `Fout bij bijwerken totaal: ${error instanceof Error ? error.message : 'Onbekende fout'}`,
+        tone: 'error',
+      })
+      // Reload data on error to restore correct state
+      loadAllData()
+    }
+  }
+
   const renderVervoerTable = () => {
     const busItem = categoryItems.find((item) => item.subcategorie === 'Bus huur' && item.automatisch)
     const autoItem = categoryItems.find((item) => item.subcategorie === 'Auto koks' && item.automatisch)
-    const totaalKm = planningData.reduce((sum, dag) => sum + (dag.km || 0), 0)
-    const aantalBusdagen = planningData.length
+    
+    // Split into first 10 days and extra
+    const first10Days = planningData.slice(0, 10)
+    const extraDays = planningData.slice(10)
+    const kmFirst10 = first10Days.reduce((sum, dag) => sum + (dag.km || 0), 0)
+    const kmExtra = extraDays.reduce((sum, dag) => sum + (dag.km || 0), 0)
+    const totaalKm = kmFirst10 + kmExtra
+    const aantalBusdagen = 10 // Always use 10 days for calculation
 
     return (
       <div className="space-y-3">
@@ -604,19 +1036,87 @@ export default function Kosten() {
           <div className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-3">
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2">
                   <h4 className="text-lg font-semibold text-[#111418] dark:text-white">Bus huur</h4>
                   <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
                     Auto
                   </span>
                 </div>
+                {(() => {
+                  // Bereken vaste kosten
+                  const aantalBusdagen = 10
+                  const vasteKosten = parameters?.bus_dagprijs ? parameters.bus_dagprijs * aantalBusdagen : 0
+                  
+                  // Bereken km kosten
+                  const totaalKm = planningData.reduce((sum, dag) => sum + (dag.km || 0), 0)
+                  let kmKosten = 0
+                  if (parameters?.bus_daglimiet === 0 || parameters?.bus_daglimiet === null) {
+                    // All kilometers are extra (paid per km)
+                    kmKosten = parameters?.bus_extra_km ? totaalKm * parameters.bus_extra_km : 0
+                  } else if (parameters?.bus_daglimiet && parameters?.bus_extra_km) {
+                    const maxKmZonderExtra = parameters.bus_daglimiet * aantalBusdagen
+                    if (totaalKm > maxKmZonderExtra) {
+                      const extraKm = totaalKm - maxKmZonderExtra
+                      kmKosten = extraKm * parameters.bus_extra_km
+                    }
+                  }
+                  
+                  // Bereken extra kosten uit de tabel (items met kost_van_bus aangevinkt)
+                  const extraKostenItems = categoryItems.filter((item) => 
+                    !item.automatisch && 
+                    item.kost_van_bus === true
+                  )
+                  const extraKosten = extraKostenItems.reduce((sum, item) => {
+                    return sum + calculateItemTotal(item)
+                  }, 0)
+                  
+                  // Totaal = vaste + km + extra
+                  const totaalMetExtra = (busItem.totaal || 0) + extraKosten
+                  
+                  return (
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-primary">
+                        <span className="text-[#617589] dark:text-gray-400">vaste: </span>
+                        {formatEuro(vasteKosten)}
+                      </span>
+                      <span className="text-primary">
+                        <span className="text-[#617589] dark:text-gray-400">km kost: </span>
+                        {formatEuro(kmKosten)}
+                      </span>
+                      {extraKosten > 0 && (
+                        <span className="text-primary">
+                          <span className="text-[#617589] dark:text-gray-400">extra: </span>
+                          {formatEuro(extraKosten)}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
                 {busItem.beschrijving && (
-                  <p className="text-sm text-[#617589] dark:text-gray-400 mt-0.5">{busItem.beschrijving}</p>
+                  <p className="text-sm text-[#617589] dark:text-gray-400 mt-1">{busItem.beschrijving}</p>
                 )}
               </div>
               <div className="text-right ml-4">
-                <p className="text-2xl font-bold text-primary">{formatEuro(busItem.totaal || 0)}</p>
-                <p className="text-xs text-[#617589] dark:text-gray-400 mt-0.5">Totaal</p>
+                {(() => {
+                  // Bereken extra kosten uit de tabel (items met kost_van_bus aangevinkt)
+                  const extraKostenItems = categoryItems.filter((item) => 
+                    !item.automatisch && 
+                    item.kost_van_bus === true
+                  )
+                  const extraKosten = extraKostenItems.reduce((sum, item) => {
+                    return sum + calculateItemTotal(item)
+                  }, 0)
+                  
+                  // Totaal = vaste + km + extra
+                  const totaalMetExtra = (busItem.totaal || 0) + extraKosten
+                  
+                  return (
+                    <>
+                      <p className="text-2xl font-bold text-primary">{formatEuro(totaalMetExtra)}</p>
+                      <p className="text-xs text-[#617589] dark:text-gray-400 mt-0.5">Totaal</p>
+                    </>
+                  )
+                })()}
               </div>
             </div>
 
@@ -716,44 +1216,182 @@ export default function Kosten() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400 mb-2">
                 Kilometers per dag
               </p>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr>
-                    <th className="px-2 py-1 text-left border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold">
-                      Dag
-                    </th>
-                    {planningData.map((dag) => (
-                      <th
-                        key={dag.id}
-                        className="px-2 py-1 text-center border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold"
-                      >
-                        {dag.dag}
+              <div className="overflow-x-auto -mx-2 px-2">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="px-0.5 py-0.5 text-left border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold whitespace-nowrap">
+                        Dag
                       </th>
-                    ))}
-                    <th className="px-2 py-1 text-center border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold">
-                      Totaal
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="px-2 py-1 text-left border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold">
-                      Afstand
-                    </td>
-                    {planningData.map((dag) => (
-                      <td
-                        key={dag.id}
-                        className="px-2 py-1 text-center border-b border-[#dbe0e6] dark:border-gray-700 text-[#111418] dark:text-gray-200 font-medium"
-                      >
-                        {dag.km}
+                      {first10Days.map((dag) => (
+                        <th
+                          key={dag.id}
+                          className="px-0.5 py-0.5 text-center border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold whitespace-nowrap"
+                        >
+                          {dag.dag}
+                        </th>
+                      ))}
+                      {extraDays.length > 0 && (
+                        <th className="px-0.5 py-0.5 text-center border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold whitespace-nowrap">
+                          Extra
+                        </th>
+                      )}
+                      <th className="px-0.5 py-0.5 text-center border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold whitespace-nowrap">
+                        Totaal
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="px-0.5 py-0.5 text-left border-b border-[#dbe0e6] dark:border-gray-700 text-[#617589] dark:text-gray-400 font-semibold whitespace-nowrap">
+                        Afstand
                       </td>
-                    ))}
-                    <td className="px-2 py-1 text-center border-b border-[#dbe0e6] dark:border-gray-700 text-primary font-semibold">
-                      {totaalKm}
+                    {first10Days.map((dag) => {
+                      const currentKm = dag.km ?? 0
+                      const editingValue = editingKmValues[dag.id]
+                      const displayValue = editingValue !== undefined ? editingValue : (currentKm === 0 ? '' : String(currentKm))
+                      
+                      return (
+                        <td
+                          key={dag.id}
+                          className="px-0.5 py-0.5 text-center border-b border-[#dbe0e6] dark:border-gray-700"
+                        >
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={displayValue}
+                            onChange={(e) => {
+                              // Allow empty string and numbers only
+                              const value = e.target.value
+                              if (value === '' || /^\d+$/.test(value)) {
+                                setEditingKmValues(prev => ({ ...prev, [dag.id]: value }))
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value.trim()
+                              const newKm = value === '' ? 0 : Number(value)
+                              if (!isNaN(newKm) && newKm !== currentKm) {
+                                handleUpdateKm(dag.id, newKm)
+                              }
+                              // Clear editing state
+                              setEditingKmValues(prev => {
+                                const next = { ...prev }
+                                delete next[dag.id]
+                                return next
+                              })
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur()
+                              }
+                            }}
+                            className="w-full min-w-[50px] max-w-[60px] text-center bg-white dark:bg-background-dark border border-[#dbe0e6] dark:border-gray-700 rounded px-0.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary text-[#111418] dark:text-gray-200 font-medium text-xs"
+                          />
+                        </td>
+                      )
+                    })}
+                    {extraDays.length > 0 && (
+                      <td className="px-0.5 py-0.5 text-center border-b border-[#dbe0e6] dark:border-gray-700">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={editingKmValues[extraDays[0].id] !== undefined ? editingKmValues[extraDays[0].id] : (kmExtra === 0 ? '' : String(kmExtra))}
+                          onChange={(e) => {
+                            // Allow empty string and numbers only
+                            const value = e.target.value
+                            if (value === '' || /^\d+$/.test(value)) {
+                              setEditingKmValues(prev => ({ ...prev, [extraDays[0].id]: value }))
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value.trim()
+                            const newExtra = value === '' ? 0 : Number(value)
+                            if (!isNaN(newExtra) && newExtra !== kmExtra) {
+                              const extraDay = extraDays[0]
+                              handleUpdateKm(extraDay.id, newExtra)
+                            }
+                            // Clear editing state
+                            setEditingKmValues(prev => {
+                              const next = { ...prev }
+                              delete next[extraDays[0].id]
+                              return next
+                            })
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur()
+                            }
+                          }}
+                          className="w-full min-w-[50px] max-w-[60px] text-center bg-white dark:bg-background-dark border border-[#dbe0e6] dark:border-gray-700 rounded px-0.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary text-[#111418] dark:text-gray-200 font-medium text-xs"
+                        />
+                      </td>
+                    )}
+                    <td className="px-0.5 py-0.5 text-center border-b border-[#dbe0e6] dark:border-gray-700">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={editingTotalKm !== null ? editingTotalKm : (totaalKm === 0 ? '' : String(totaalKm))}
+                        onChange={(e) => {
+                          // Allow empty string and numbers only
+                          const value = e.target.value
+                          if (value === '' || /^\d+$/.test(value)) {
+                            setEditingTotalKm(value)
+                            
+                            // Calculate what the extra should be and update local state
+                            if (value !== '') {
+                              const newTotal = Number(value)
+                              if (!isNaN(newTotal)) {
+                                const first10Days = planningData.slice(0, 10)
+                                const kmFirst10 = first10Days.reduce((sum, dag) => sum + (dag.km || 0), 0)
+                                const newExtra = Math.max(0, newTotal - kmFirst10)
+                                
+                                // Update local state for extra day
+                                const extraDays = planningData.slice(10)
+                                if (extraDays.length > 0) {
+                                  const extraDay = extraDays[0]
+                                  const updatedPlanning = planningData.map(d => 
+                                    d.id === extraDay.id ? { ...d, km: newExtra } : d
+                                  )
+                                  setPlanningData(updatedPlanning)
+                                  // Also update editing state for the extra field
+                                  setEditingKmValues(prev => ({ ...prev, [extraDay.id]: String(newExtra) }))
+                                }
+                              }
+                            } else {
+                              // If empty, reset extra to 0
+                              const extraDays = planningData.slice(10)
+                              if (extraDays.length > 0) {
+                                const extraDay = extraDays[0]
+                                const updatedPlanning = planningData.map(d => 
+                                  d.id === extraDay.id ? { ...d, km: 0 } : d
+                                )
+                                setPlanningData(updatedPlanning)
+                                setEditingKmValues(prev => ({ ...prev, [extraDay.id]: '' }))
+                              }
+                            }
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim()
+                          const newTotal = value === '' ? 0 : Number(value)
+                          if (!isNaN(newTotal) && newTotal !== totaalKm) {
+                            handleUpdateTotalKm(newTotal)
+                          }
+                          // Clear editing state
+                          setEditingTotalKm(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur()
+                          }
+                        }}
+                        className="w-full min-w-[55px] max-w-[65px] text-center bg-transparent border-none text-primary font-semibold cursor-text text-xs focus:outline-none focus:ring-1 focus:ring-primary rounded"
+                      />
                     </td>
                   </tr>
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         )}
@@ -862,10 +1500,13 @@ export default function Kosten() {
             <table className="min-w-full text-sm">
               <thead className="bg-background-light dark:bg-white/10 text-[#111418] dark:text-gray-200 uppercase tracking-[0.1em] text-xs">
                 <tr>
-                  <th className="px-4 py-2 text-left">Subcategorie</th>
+                  <th className="px-4 py-2 text-left">Titel</th>
                   <th className="px-4 py-2 text-left">Beschrijving</th>
                   <th className="px-4 py-2 text-right">Totaal</th>
                   <th className="px-4 py-2 text-left">Opmerkingen</th>
+                  {selectedCategory === 'Vervoer' && (
+                    <th className="px-4 py-2 text-center">Kost van bus</th>
+                  )}
                   <th className="px-4 py-2"></th>
                 </tr>
               </thead>
@@ -874,28 +1515,148 @@ export default function Kosten() {
                   .filter((item) => !item.automatisch)
                   .map((item) => {
                     const totaal = calculateItemTotal(item)
+                    const isEditingBeschrijving = editingField?.id === item.id && editingField?.field === 'beschrijving'
+                    const isEditingOpmerkingen = editingField?.id === item.id && editingField?.field === 'opmerkingen'
+                    const isEditingTotaal = editingField?.id === item.id && editingField?.field === 'totaal'
+                    
                     return (
                       <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/5">
                         <td className="px-4 py-2 font-medium text-[#111418] dark:text-gray-100">
                           {item.subcategorie}
                         </td>
                         <td className="px-4 py-2 text-[#617589] dark:text-gray-400">
-                          {item.beschrijving || '—'}
+                          {isEditingBeschrijving ? (
+                            <input
+                              type="text"
+                              defaultValue={item.beschrijving || ''}
+                              onBlur={(e) => {
+                                const newValue = e.target.value.trim() || null
+                                if (newValue !== (item.beschrijving || null)) {
+                                  handleUpdateField(item.id, 'beschrijving', newValue)
+                                } else {
+                                  setEditingField(null)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur()
+                                } else if (e.key === 'Escape') {
+                                  setEditingField(null)
+                                }
+                              }}
+                              autoFocus
+                              className="w-full px-2 py-1 rounded border border-primary focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-background-dark text-[#111418] dark:text-gray-100"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setEditingField({ id: item.id, field: 'beschrijving' })}
+                              className="cursor-pointer hover:text-primary transition-colors"
+                              title="Klik om te bewerken"
+                            >
+                              {item.beschrijving || '—'}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-right font-medium text-[#111418] dark:text-gray-100">
-                          {formatEuro(totaal)}
+                          {isEditingTotaal ? (
+                            <input
+                              type="number"
+                              step="0.01"
+                              defaultValue={item.totaal || ''}
+                              onBlur={(e) => {
+                                const newValue = e.target.value ? Number(e.target.value) : null
+                                if (newValue !== (item.totaal || null)) {
+                                  handleUpdateField(item.id, 'totaal', newValue)
+                                } else {
+                                  setEditingField(null)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur()
+                                } else if (e.key === 'Escape') {
+                                  setEditingField(null)
+                                }
+                              }}
+                              autoFocus
+                              className="w-full px-2 py-1 rounded border border-primary focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-background-dark text-[#111418] dark:text-gray-100 text-right"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setEditingField({ id: item.id, field: 'totaal' })}
+                              className="cursor-pointer hover:text-primary transition-colors"
+                              title="Klik om totaal te bewerken"
+                            >
+                              {formatEuro(totaal)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-[#617589] dark:text-gray-400">
-                          {item.opmerkingen || '—'}
+                          {isEditingOpmerkingen ? (
+                            <input
+                              type="text"
+                              defaultValue={item.opmerkingen || ''}
+                              onBlur={(e) => {
+                                const newValue = e.target.value.trim() || null
+                                if (newValue !== (item.opmerkingen || null)) {
+                                  handleUpdateField(item.id, 'opmerkingen', newValue)
+                                } else {
+                                  setEditingField(null)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur()
+                                } else if (e.key === 'Escape') {
+                                  setEditingField(null)
+                                }
+                              }}
+                              autoFocus
+                              className="w-full px-2 py-1 rounded border border-primary focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-background-dark text-[#111418] dark:text-gray-100"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setEditingField({ id: item.id, field: 'opmerkingen' })}
+                              className="cursor-pointer hover:text-primary transition-colors"
+                              title="Klik om opmerkingen te bewerken"
+                            >
+                              {item.opmerkingen || '—'}
+                            </span>
+                          )}
                         </td>
+                        {selectedCategory === 'Vervoer' && (
+                          <td className="px-4 py-2 text-center">
+                            <input
+                              type="checkbox"
+                              checked={item.kost_van_bus === true}
+                              onChange={async (e) => {
+                                try {
+                                  await handleUpdateField(item.id, 'kost_van_bus', e.target.checked)
+                                } catch (error) {
+                                  console.error('Error updating kost_van_bus:', error)
+                                }
+                              }}
+                              className="rounded border-[#dbe0e6] dark:border-gray-700 text-primary focus:ring-2 focus:ring-primary cursor-pointer"
+                            />
+                          </td>
+                        )}
                         <td className="px-4 py-2">
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                            title="Verwijderen"
-                          >
-                            <span className="material-symbols-outlined text-base">delete</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEditItem(item)}
+                              className="text-primary hover:text-primary/80 text-sm"
+                              title="Aanpassen"
+                            >
+                              <span className="material-symbols-outlined text-base">edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                              title="Verwijderen"
+                            >
+                              <span className="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -1017,7 +1778,7 @@ export default function Kosten() {
             <table className="min-w-full text-sm">
               <thead className="bg-background-light dark:bg-white/10 text-[#111418] dark:text-gray-200 uppercase tracking-[0.1em] text-xs">
                 <tr>
-                  <th className="px-4 py-2 text-left">Subcategorie</th>
+                  <th className="px-4 py-2 text-left">Titel</th>
                   <th className="px-4 py-2 text-left">Beschrijving</th>
                   <th className="px-4 py-2 text-right">Totaal</th>
                   <th className="px-4 py-2 text-left">Opmerkingen</th>
@@ -1029,28 +1790,132 @@ export default function Kosten() {
                   .filter((item) => !item.automatisch)
                   .map((item) => {
                     const totaal = calculateItemTotal(item)
+                    const isEditingBeschrijving = editingField?.id === item.id && editingField?.field === 'beschrijving'
+                    const isEditingOpmerkingen = editingField?.id === item.id && editingField?.field === 'opmerkingen'
+                    const isEditingTotaal = editingField?.id === item.id && editingField?.field === 'totaal'
+                    
                     return (
                       <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-white/5">
                         <td className="px-4 py-2 font-medium text-[#111418] dark:text-gray-100">
                           {item.subcategorie}
                         </td>
                         <td className="px-4 py-2 text-[#617589] dark:text-gray-400">
-                          {item.beschrijving || '—'}
+                          {isEditingBeschrijving ? (
+                            <input
+                              type="text"
+                              defaultValue={item.beschrijving || ''}
+                              onBlur={(e) => {
+                                const newValue = e.target.value.trim() || null
+                                if (newValue !== (item.beschrijving || null)) {
+                                  handleUpdateField(item.id, 'beschrijving', newValue)
+                                } else {
+                                  setEditingField(null)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur()
+                                } else if (e.key === 'Escape') {
+                                  setEditingField(null)
+                                }
+                              }}
+                              autoFocus
+                              className="w-full px-2 py-1 rounded border border-primary focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-background-dark text-[#111418] dark:text-gray-100"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setEditingField({ id: item.id, field: 'beschrijving' })}
+                              className="cursor-pointer hover:text-primary transition-colors"
+                              title="Klik om te bewerken"
+                            >
+                              {item.beschrijving || '—'}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-right font-medium text-[#111418] dark:text-gray-100">
-                          {formatEuro(totaal)}
+                          {isEditingTotaal ? (
+                            <input
+                              type="number"
+                              step="0.01"
+                              defaultValue={item.totaal || ''}
+                              onBlur={(e) => {
+                                const newValue = e.target.value ? Number(e.target.value) : null
+                                if (newValue !== (item.totaal || null)) {
+                                  handleUpdateField(item.id, 'totaal', newValue)
+                                } else {
+                                  setEditingField(null)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur()
+                                } else if (e.key === 'Escape') {
+                                  setEditingField(null)
+                                }
+                              }}
+                              autoFocus
+                              className="w-full px-2 py-1 rounded border border-primary focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-background-dark text-[#111418] dark:text-gray-100 text-right"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setEditingField({ id: item.id, field: 'totaal' })}
+                              className="cursor-pointer hover:text-primary transition-colors"
+                              title="Klik om totaal te bewerken"
+                            >
+                              {formatEuro(totaal)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-[#617589] dark:text-gray-400">
-                          {item.opmerkingen || '—'}
+                          {isEditingOpmerkingen ? (
+                            <input
+                              type="text"
+                              defaultValue={item.opmerkingen || ''}
+                              onBlur={(e) => {
+                                const newValue = e.target.value.trim() || null
+                                if (newValue !== (item.opmerkingen || null)) {
+                                  handleUpdateField(item.id, 'opmerkingen', newValue)
+                                } else {
+                                  setEditingField(null)
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur()
+                                } else if (e.key === 'Escape') {
+                                  setEditingField(null)
+                                }
+                              }}
+                              autoFocus
+                              className="w-full px-2 py-1 rounded border border-primary focus:outline-none focus:ring-1 focus:ring-primary bg-white dark:bg-background-dark text-[#111418] dark:text-gray-100"
+                            />
+                          ) : (
+                            <span
+                              onClick={() => setEditingField({ id: item.id, field: 'opmerkingen' })}
+                              className="cursor-pointer hover:text-primary transition-colors"
+                              title="Klik om opmerkingen te bewerken"
+                            >
+                              {item.opmerkingen || '—'}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-2">
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                            title="Verwijderen"
-                          >
-                            <span className="material-symbols-outlined text-base">delete</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEditItem(item)}
+                              className="text-primary hover:text-primary/80 text-sm"
+                              title="Aanpassen"
+                            >
+                              <span className="material-symbols-outlined text-base">edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                              title="Verwijderen"
+                            >
+                              <span className="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -1077,8 +1942,8 @@ export default function Kosten() {
               <th className="px-4 py-2 text-left">Beschrijving</th>
               <th className="px-4 py-2 text-right">Prijs/persoon</th>
               <th className="px-4 py-2 text-right">Aantal</th>
-              <th className="px-4 py-2 text-right">Totaal</th>
               <th className="px-4 py-2 text-left">Opmerkingen</th>
+              <th className="px-4 py-2 text-right">Totaal</th>
               <th className="px-4 py-2"></th>
             </tr>
           </thead>
@@ -1096,77 +1961,35 @@ export default function Kosten() {
                   <td className="px-4 py-2 text-[#617589] dark:text-gray-400">
                     {item.beschrijving || '—'}
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    {editingField?.id === item.id && editingField?.field === 'prijs_per_persoon' ? (
-                      <input
-                        type="number"
-                        step="0.01"
-                        defaultValue={prijsPerPersoon}
-                        onBlur={(e) => {
-                          handleUpdateField(item.id, 'prijs_per_persoon', Number(e.target.value))
-                          setEditingField(null)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleUpdateField(item.id, 'prijs_per_persoon', Number(e.currentTarget.value))
-                            setEditingField(null)
-                          }
-                          if (e.key === 'Escape') setEditingField(null)
-                        }}
-                        autoFocus
-                        className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <span
-                        onClick={() => setEditingField({ id: item.id, field: 'prijs_per_persoon' })}
-                        className="cursor-pointer hover:underline text-[#111418] dark:text-gray-100"
-                      >
-                        {formatEuro(prijsPerPersoon)}
-                      </span>
-                    )}
+                  <td className="px-4 py-2 text-right text-[#111418] dark:text-gray-100">
+                    {formatEuro(prijsPerPersoon)}
                   </td>
-                  <td className="px-4 py-2 text-right">
-                    {editingField?.id === item.id && editingField?.field === 'aantal' ? (
-                      <input
-                        type="number"
-                        defaultValue={aantalPersonen}
-                        onBlur={(e) => {
-                          handleUpdateField(item.id, 'aantal', Number(e.target.value))
-                          setEditingField(null)
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleUpdateField(item.id, 'aantal', Number(e.currentTarget.value))
-                            setEditingField(null)
-                          }
-                          if (e.key === 'Escape') setEditingField(null)
-                        }}
-                        autoFocus
-                        className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
-                      />
-                    ) : (
-                      <span
-                        onClick={() => setEditingField({ id: item.id, field: 'aantal' })}
-                        className="cursor-pointer hover:underline text-[#111418] dark:text-gray-100"
-                      >
-                        {aantalPersonen}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right font-medium text-[#111418] dark:text-gray-100">
-                    {formatEuro(totaal)}
+                  <td className="px-4 py-2 text-right text-[#111418] dark:text-gray-100">
+                    {aantalPersonen}
                   </td>
                   <td className="px-4 py-2 text-[#617589] dark:text-gray-400">
                     {item.opmerkingen || '—'}
                   </td>
+                  <td className="px-4 py-2 text-right font-medium text-[#111418] dark:text-gray-100">
+                    {formatEuro(totaal)}
+                  </td>
                   <td className="px-4 py-2">
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="text-red-500 hover:text-red-700 text-sm"
-                      title="Verwijderen"
-                    >
-                      <span className="material-symbols-outlined text-base">delete</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditItem(item)}
+                        className="text-primary hover:text-primary/80 text-sm"
+                        title="Aanpassen"
+                      >
+                        <span className="material-symbols-outlined text-base">edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                        title="Verwijderen"
+                      >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -1395,7 +2218,7 @@ export default function Kosten() {
               </div>
               <div className="grid gap-2">
                 <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
-                  Subcategorie
+                  Titel
                 </label>
                 <input
                   type="text"
@@ -1483,10 +2306,185 @@ export default function Kosten() {
                   className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
+              {selectedCategory === 'Vervoer' && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="kost_van_bus"
+                    id="kost_van_bus_add"
+                    className="rounded border-[#dbe0e6] dark:border-gray-700 text-primary focus:ring-2 focus:ring-primary"
+                  />
+                  <label htmlFor="kost_van_bus_add" className="text-sm text-[#111418] dark:text-gray-100 cursor-pointer">
+                    Kost van bus
+                  </label>
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
+                  className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 px-4 py-2 text-sm font-semibold text-[#617589] hover:bg-gray-100 dark:hover:bg-white/10"
+                >
+                  Annuleer
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90"
+                >
+                  Opslaan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => e.target === e.currentTarget && setEditingItem(null)}
+        >
+          <div className="w-full max-w-xl rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#dbe0e6] dark:border-gray-700 px-5 py-3">
+              <h3 className="text-lg font-semibold text-[#111418] dark:text-white">Item aanpassen</h3>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="text-[#617589] dark:text-gray-400 hover:text-[#111418] dark:hover:text-gray-200"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleUpdateItem} className="grid gap-4 px-5 py-4">
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                  Categorie
+                </label>
+                <select
+                  name="categorie"
+                  required
+                  defaultValue={editingItem.categorie}
+                  className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  {CATEGORY_ORDER.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                  Titel
+                </label>
+                <input
+                  type="text"
+                  name="subcategorie"
+                  required
+                  defaultValue={editingItem.subcategorie}
+                  placeholder="Bijv. Kajakken"
+                  className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                  Beschrijving
+                </label>
+                <textarea
+                  name="beschrijving"
+                  rows={2}
+                  defaultValue={editingItem.beschrijving || ''}
+                  placeholder="Extra details"
+                  className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                  Prijs type
+                </label>
+                <select
+                  value={editModalPrijsType}
+                  onChange={(e) => setEditModalPrijsType(e.target.value as 'totaal' | 'per_persoon')}
+                  className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                >
+                  <option value="per_persoon">Per persoon</option>
+                  <option value="totaal">Totaal bedrag</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                  {editModalPrijsType === 'totaal' ? 'Totaal bedrag (€)' : 'Prijs per persoon (€)'}
+                </label>
+                <input
+                  type="number"
+                  name="prijs"
+                  step="0.01"
+                  defaultValue={editModalPrijsType === 'totaal' ? (editingItem.totaal || '') : (editingItem.prijs_per_persoon || editingItem.prijs_per_persoon_gastjes || editingItem.prijs_per_persoon_leiders || '')}
+                  className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+              {editModalPrijsType === 'per_persoon' && (
+                <>
+                  <div className="grid gap-2">
+                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                      Aantal / Voor wie?
+                    </label>
+                    <select
+                      value={editModalAantalType}
+                      onChange={(e) => setEditModalAantalType(e.target.value as 'getal' | 'iedereen' | 'gastjes' | 'leiders')}
+                      className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                    >
+                      <option value="getal">Aantal (getal)</option>
+                      <option value="iedereen">Iedereen (gastjes + leiders)</option>
+                      <option value="gastjes">Alleen gastjes</option>
+                      <option value="leiders">Alleen leiders</option>
+                    </select>
+                  </div>
+                  {editModalAantalType === 'getal' && (
+                    <div className="grid gap-2">
+                      <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                        Aantal
+                      </label>
+                      <input
+                        type="number"
+                        name="aantal_getal"
+                        defaultValue={editingItem.aantal || 1}
+                        min={1}
+                        className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">
+                  Opmerkingen
+                </label>
+                <textarea
+                  name="opmerkingen"
+                  rows={2}
+                  defaultValue={editingItem.opmerkingen || ''}
+                  className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-background-light dark:bg-background-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+              {editingItem.categorie === 'Vervoer' && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="kost_van_bus"
+                    id="kost_van_bus_edit"
+                    defaultChecked={editingItem.kost_van_bus === true}
+                    className="rounded border-[#dbe0e6] dark:border-gray-700 text-primary focus:ring-2 focus:ring-primary"
+                  />
+                  <label htmlFor="kost_van_bus_edit" className="text-sm text-[#111418] dark:text-gray-100 cursor-pointer">
+                    Kost van bus
+                  </label>
+                </div>
+              )}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
                   className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 px-4 py-2 text-sm font-semibold text-[#617589] hover:bg-gray-100 dark:hover:bg-white/10"
                 >
                   Annuleer

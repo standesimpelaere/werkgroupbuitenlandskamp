@@ -14,6 +14,7 @@ export interface KostenItem {
   totaal?: number | null
   opmerkingen?: string | null
   automatisch?: boolean | null
+  kost_van_bus?: boolean | null
   laag?: number | null
   hoog?: number | null
   created_at?: string
