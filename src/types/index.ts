@@ -33,6 +33,8 @@ export interface PlanningDag {
   updated_at?: string
 }
 
+export type VervoerScenario = 'berekening' | 'reisvogel' | 'coachpartners'
+
 export interface Parameters {
   id: string
   aantal_gastjes?: number | null

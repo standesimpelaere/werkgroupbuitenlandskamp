@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { KostenItem, PlanningDag, Parameters, VersionId } from '../types'
+import { KostenItem, PlanningDag, Parameters, VersionId, VervoerScenario } from '../types'
 import { useVersion } from '../context/VersionContext'
 import { logChange, getCurrentUserName } from '../lib/changeLogger'
+import { getVervoerScenarioStorageKey, vervoerOffertes } from '../lib/vervoerOffertes'
 
 const CATEGORY_ORDER = ['Verblijf', 'Vervoer', 'Eten', 'Speciale Activiteiten', 'Overige']
 
@@ -30,9 +31,18 @@ export default function Kosten() {
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({})
   const [editingKmValues, setEditingKmValues] = useState<{ [dagId: string]: string }>({})
   const [editingTotalKm, setEditingTotalKm] = useState<string | null>(null)
+  const [selectedVervoerScenario, setSelectedVervoerScenario] = useState<VervoerScenario>('berekening')
 
   useEffect(() => {
     loadAllData()
+  }, [currentVersion])
+
+  useEffect(() => {
+    const storageKey = getVervoerScenarioStorageKey(currentVersion)
+    const stored = localStorage.getItem(storageKey) as VervoerScenario | null
+    if (stored === 'berekening' || stored === 'reisvogel' || stored === 'coachpartners') {
+      setSelectedVervoerScenario(stored)
+    }
   }, [currentVersion])
 
   const restoreKmFromChangeLog = async (planningDays: PlanningDag[]) => {
@@ -1017,6 +1027,41 @@ export default function Kosten() {
     }
   }
 
+  const renderVervoerOfferte = (scenario: Exclude<VervoerScenario, 'berekening'>) => {
+    const offerte = vervoerOffertes[scenario]
+    if (!offerte) return null
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start justify-between rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#617589] dark:text-gray-400">Offerte</p>
+            <h4 className="text-lg font-semibold text-[#111418] dark:text-white">{offerte.title}</h4>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-primary">{formatEuro(offerte.totaal)}</p>
+            <p className="text-xs text-[#617589] dark:text-gray-400 mt-0.5">Totaal</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {offerte.sections.map((section) => (
+            <div key={section.title} className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-3">
+              <h5 className="text-sm font-semibold text-[#111418] dark:text-white mb-2">{section.title}</h5>
+              <ul className="space-y-1 text-sm text-[#617589] dark:text-gray-400 list-disc list-inside">
+                {section.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {offerte.note && <p className="text-xs text-[#617589] dark:text-gray-400">{offerte.note}</p>}
+      </div>
+    )
+  }
+
   const renderVervoerTable = () => {
     const busItem = categoryItems.find((item) => item.subcategorie === 'Bus huur' && item.automatisch)
     const autoItem = categoryItems.find((item) => item.subcategorie === 'Auto koks' && item.automatisch)
@@ -1029,8 +1074,53 @@ export default function Kosten() {
     const totaalKm = kmFirst10 + kmExtra
     const aantalBusdagen = 10 // Always use 10 days for calculation
 
+    const scenarioButtons = (
+      <div className="flex flex-col gap-1">
+        <p className="text-xs uppercase tracking-[0.2em] text-[#617589] dark:text-gray-500">
+          Kies offerte voor dashboard/kosten
+        </p>
+        <div className="flex flex-wrap gap-2">
+        {[
+            { key: 'berekening' as VervoerScenario, label: 'Mandel car' },
+          { key: 'reisvogel' as VervoerScenario, label: 'Autocars "De Reisvogel"' },
+          { key: 'coachpartners' as VervoerScenario, label: 'Coach Partners West-Vlaanderen NV' },
+        ].map((option) => {
+          const isActive = selectedVervoerScenario === option.key
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => {
+                setSelectedVervoerScenario(option.key)
+                const storageKey = getVervoerScenarioStorageKey(currentVersion)
+                localStorage.setItem(storageKey, option.key)
+              }}
+              className={`rounded-full border px-3 py-1 text-sm transition ${
+                isActive
+                  ? 'bg-primary text-white border-primary shadow-sm'
+                  : 'text-[#617589] dark:text-gray-300 border-[#dbe0e6] dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/10'
+              }`}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+        </div>
+      </div>
+    )
+
+    if (selectedVervoerScenario !== 'berekening') {
+      return (
+        <div className="space-y-3">
+          {scenarioButtons}
+          {renderVervoerOfferte(selectedVervoerScenario)}
+        </div>
+      )
+    }
+
     return (
       <div className="space-y-3">
+        {scenarioButtons}
         {/* Bus Item */}
         {busItem && (
           <div className="rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-3">

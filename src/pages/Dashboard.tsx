@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { KostenItem, Parameters, VersionId, PlanningDag } from '../types'
+import { KostenItem, Parameters, VersionId, PlanningDag, VervoerScenario } from '../types'
 import { useVersion, VERSIONS } from '../context/VersionContext'
 import { logChange, getCurrentUserName } from '../lib/changeLogger'
+import { getVervoerScenarioStorageKey, vervoerOffertes } from '../lib/vervoerOffertes'
 
 interface CategoryTotal {
   categorie: string
@@ -18,25 +19,75 @@ export default function Dashboard() {
   const [planningData, setPlanningData] = useState<PlanningDag[]>([])
   const [categoryTotals, setCategoryTotals] = useState<CategoryTotal[]>([])
   const [inputValues, setInputValues] = useState<{ [key: string]: string }>({})
+  const [selectedVervoerScenario, setSelectedVervoerScenario] = useState<VervoerScenario>('berekening')
+
+  const buildEffectiveKostenItems = (
+    items: KostenItem[],
+    params: Parameters | null,
+    scenario: VervoerScenario
+  ): KostenItem[] => {
+    if (scenario === 'berekening') return items
+    const offerte = vervoerOffertes[scenario]
+    if (!offerte) return items
+
+    const filtered = items.filter((item) => item.categorie !== 'Vervoer')
+    const syntheticItem: KostenItem = {
+      id: `offerte-${scenario}`,
+      categorie: 'Vervoer',
+      subcategorie: offerte.title,
+      eenheid: 'groep',
+      prijs_per_persoon: offerte.totaal,
+      aantal: 1,
+      totaal: offerte.totaal,
+      opmerkingen: 'Offerte geselecteerd voor dashboard',
+      automatisch: false,
+    }
+
+    return [...filtered, syntheticItem]
+  }
+
+  const handleScenarioSelect = (scenario: VervoerScenario) => {
+    setSelectedVervoerScenario(scenario)
+    const storageKey = getVervoerScenarioStorageKey(currentVersion)
+    localStorage.setItem(storageKey, scenario)
+  }
 
   useEffect(() => {
+    const storageKey = getVervoerScenarioStorageKey(currentVersion)
+    const stored = localStorage.getItem(storageKey) as VervoerScenario | null
+    if (stored === 'berekening' || stored === 'reisvogel' || stored === 'coachpartners') {
+      setSelectedVervoerScenario(stored)
+    }
     loadAllData()
   }, [currentVersion])
 
   const loadAllData = async () => {
     try {
+      const storageKey = getVervoerScenarioStorageKey(currentVersion)
+      const stored = localStorage.getItem(storageKey) as VervoerScenario | null
+      const scenario =
+        stored === 'berekening' || stored === 'reisvogel' || stored === 'coachpartners'
+          ? stored
+          : selectedVervoerScenario
+      if (stored && stored !== selectedVervoerScenario) {
+        setSelectedVervoerScenario(stored)
+      }
+
       const [loadedKosten, loadedParams, loadedPlanning] = await Promise.all([
         getKostenItems(),
         getParameters(),
         getPlanningData(),
       ])
+
+      const effectiveItems = buildEffectiveKostenItems(loadedKosten, loadedParams, scenario)
+
       setKostenItems(loadedKosten)
       setParameters(loadedParams)
       setPlanningData(loadedPlanning)
       
       // Calculate totals
       const totals: { [key: string]: number } = {}
-      loadedKosten.forEach((item) => {
+      effectiveItems.forEach((item) => {
         const categorie = item.categorie
         const totaal = Number(item.totaal) || calculateItemTotal(item, loadedParams)
         totals[categorie] = (totals[categorie] || 0) + totaal
@@ -88,15 +139,37 @@ export default function Dashboard() {
     }
   }
   
+  const effectiveKostenItems = useMemo(
+    () => buildEffectiveKostenItems(kostenItems, parameters, selectedVervoerScenario),
+    [kostenItems, parameters, selectedVervoerScenario]
+  )
+
+  const adjustedCategoryTotals = useMemo(() => {
+    const totals: { [key: string]: number } = {}
+    effectiveKostenItems.forEach((item) => {
+      const categorie = item.categorie || 'Overige'
+      const totaal = Number(item.totaal) || calculateItemTotal(item, parameters)
+      totals[categorie] = (totals[categorie] || 0) + totaal
+    })
+    return Object.entries(totals).map(([categorie, totaal]) => ({ categorie, totaal }))
+  }, [effectiveKostenItems, parameters])
+  
   const handleDownloadSpreadsheet = async () => {
     try {
       // Get all data
       const loadedKosten = await getKostenItems()
       const loadedParams = await getParameters()
+      const storageKey = getVervoerScenarioStorageKey(currentVersion)
+      const stored = localStorage.getItem(storageKey) as VervoerScenario | null
+      const scenario =
+        stored === 'berekening' || stored === 'reisvogel' || stored === 'coachpartners'
+          ? stored
+          : selectedVervoerScenario
+      const exportKosten = buildEffectiveKostenItems(loadedKosten, loadedParams, scenario)
 
       // Calculate totals per category
       const categoryTotals: { [key: string]: number } = {}
-      loadedKosten.forEach((item) => {
+      exportKosten.forEach((item) => {
         const categorie = item.categorie || 'Overige'
         const totaal = calculateItemTotal(item, loadedParams)
         categoryTotals[categorie] = (categoryTotals[categorie] || 0) + totaal
@@ -138,7 +211,7 @@ export default function Dashboard() {
       // Sheet 3: Kosten details
       csvContent += '=== KOSTEN DETAILS ===\n'
       csvContent += 'Categorie,Subcategorie,Beschrijving,Eenheid,Splitsing,Prijs per persoon,Prijs per persoon (gastjes),Prijs per persoon (leiders),Aantal,Berekend totaal (€),Opmerkingen,Automatisch\n'
-      loadedKosten.forEach((item) => {
+      exportKosten.forEach((item) => {
         const escapeCSV = (val: any) => {
           if (val === null || val === undefined) return ''
           const str = String(val)
@@ -355,12 +428,48 @@ export default function Dashboard() {
             </Link>
           </div>
 
+          {/* Vervoer scenario keuze */}
+          <div className="mt-4 rounded-lg border border-[#dbe0e6] dark:border-gray-700 bg-white dark:bg-background-dark p-4 flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#617589] dark:text-gray-500">Vervoer offerte</p>
+                <p className="text-sm text-[#111418] dark:text-white font-semibold">Kies welke offerte mee telt op het dashboard</p>
+                <p className="text-xs text-[#617589] dark:text-gray-400">
+                  De keuze wordt gedeeld met de kostenpagina en bewaard per versie.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'berekening' as VervoerScenario, label: 'Mandel car' },
+                  { key: 'reisvogel' as VervoerScenario, label: 'Autocars "De Reisvogel"' },
+                  { key: 'coachpartners' as VervoerScenario, label: 'Coach Partners West-Vlaanderen NV' },
+                ].map((option) => {
+                  const isActive = selectedVervoerScenario === option.key
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => handleScenarioSelect(option.key)}
+                      className={`rounded-full border px-3 py-1 text-sm transition ${
+                        isActive
+                          ? 'bg-primary text-white border-primary shadow-sm'
+                          : 'text-[#617589] dark:text-gray-300 border-[#dbe0e6] dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* Stats Cards */}
             <StatsCards
-              kostenItems={kostenItems}
+              kostenItems={effectiveKostenItems}
               parameters={parameters}
               calculateItemTotal={calculateItemTotal}
-              categoryTotals={categoryTotals}
+              categoryTotals={adjustedCategoryTotals}
             />
 
           {/* Charts Section */}
@@ -523,7 +632,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-[#111418] dark:text-white mb-4">
                 Kosten per categorie
               </h2>
-              <CategoryBarChart categoryTotals={categoryTotals} />
+              <CategoryBarChart categoryTotals={adjustedCategoryTotals} />
             </div>
           </div>
 
@@ -534,7 +643,7 @@ export default function Dashboard() {
             </h2>
             <div className="flex gap-6">
               <CostAnalysisChart
-                kostenItems={kostenItems}
+                kostenItems={effectiveKostenItems}
                 parameters={parameters}
                 planningData={planningData}
                 calculateItemTotal={calculateItemTotal}
